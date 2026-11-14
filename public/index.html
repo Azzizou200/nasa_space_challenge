@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-motion="on">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AERO-WATCH // Global Deforestation & Earth Observation Platform</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300e5ff'/><circle cx='50' cy='50' r='35' fill='%23060911'/><circle cx='50' cy='50' r='18' fill='%2300e5ff'/></svg>">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Taste-Skill System & Motion CSS -->
+  <link rel="stylesheet" href="assets/motion/motion.css">
+  
+  <!-- Custom Observatory Theme -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Fullscreen Map Canvas -->
+  <div id="map" role="region" aria-label="Interactive Satellite World Map"></div>
+
+  <!-- Drawing Mode Toast Helper -->
+  <div id="drawing-toast" class="drawing-toast" role="status">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" stroke-dasharray="3 3"></rect>
+    </svg>
+    <span><strong>Square Selector Active:</strong> Click & drag anywhere across the globe to define a Region of Interest (ROI)</span>
+    <button id="cancel-drawing-btn" class="drawing-toast-cancel">Cancel [Esc]</button>
+  </div>
+
+  <!-- Top Navigation & Header Bar -->
+  <header class="header-bar animate-enter-top">
+    <!-- Brand / Mission Logo -->
+    <div class="glass-panel brand-badge">
+      <div class="brand-icon-wrap" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+      </div>
+      <div class="brand-title">
+        <div class="brand-name">
+          AERO-WATCH
+          <span class="brand-status-chip">SAR PIPELINE</span>
+        </div>
+        <div class="brand-subtitle">Universal Deforestation & Disaster Observatory</div>
+      </div>
+    </div>
+
+    <!-- Center Mission Selector -->
+    <nav class="glass-panel mission-selector" aria-label="Target Observatories">
+      <button class="mission-btn" data-mission="global" aria-pressed="false">
+        <span class="mission-pip"></span>
+        <span>🌍 Global View</span>
+      </button>
+      <button class="mission-btn active" data-mission="deforestation" aria-pressed="true">
+        <span class="mission-pip"></span>
+        <span>🌲 Global Deforestation</span>
+      </button>
+      <button class="mission-btn" data-mission="florida" aria-pressed="false">
+        <span class="mission-pip"></span>
+        <span>🌀 Florida Hurricane Surge</span>
+      </button>
+    </nav>
+
+    <!-- Right Controls: Search & Tools -->
+    <div class="top-tools">
+      <!-- Square Selector Tool Button -->
+      <button id="square-select-btn" class="tool-btn" title="Square Selector: Click & drag to select region on globe (S)" aria-label="Square Region Selector">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"></rect>
+          <path d="M4 9h3M4 15h3M20 9h-3M20 15h-3M9 4v3M15 4v3M9 20v-3M15 20v-3"></path>
+        </svg>
+      </button>
+
+      <!-- Search Input -->
+      <div class="search-container">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="search-input" class="search-input" placeholder="Search world location..." autocomplete="off" aria-label="Search geographic location">
+        <span class="search-shortcut-hint">/</span>
+        <div id="search-results" class="search-results"></div>
+      </div>
+
+      <!-- Basemap Dropdown Picker -->
+      <div class="basemap-dropdown">
+        <button id="basemap-toggle-btn" class="tool-btn" title="Switch Basemap Layer" aria-label="Select Basemap Tile Layer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </button>
+        <div id="basemap-menu" class="basemap-menu" role="menu">
+          <button class="basemap-opt active" data-basemap="satellite" role="menuitem">
+            <span class="basemap-dot"></span>
+            <span>🛰️ High-Res Satellite</span>
+          </button>
+          <button class="basemap-opt" data-basemap="dark" role="menuitem">
+            <span class="basemap-dot"></span>
+            <span>🌑 Tactical Dark Matter</span>
+          </button>
+          <button class="basemap-opt" data-basemap="light" role="menuitem">
+            <span class="basemap-dot"></span>
+            <span>☀️ Positron Light</span>
+          </button>
+          <button class="basemap-opt" data-basemap="osm" role="menuitem">
+            <span class="basemap-dot"></span>
+            <span>🗺️ OpenStreetMap</span>
+          </button>
+          <button class="basemap-opt" data-basemap="night" role="menuitem">
+            <span class="basemap-dot"></span>
+            <span>🌌 NASA VIIRS Night Lights</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar Toggle Button -->
+      <button id="sidebar-toggle-btn" class="tool-btn active" title="Toggle Analytics Drawer (I)" aria-label="Toggle Mission Info">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+      </button>
+
+      <!-- About / Help Modal Button -->
+      <button id="about-btn" class="tool-btn" title="About NASA Space Challenge Project (?)" aria-label="Project Information">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button id="fullscreen-btn" class="tool-btn" title="Toggle Fullscreen (F)" aria-label="Fullscreen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Mission Detail & Spectral Layer Sidebar -->
+  <aside id="mission-sidebar" class="glass-panel mission-sidebar animate-enter-left" aria-label="Observatory Spectral Info">
+    <div class="sidebar-header">
+      <div class="sidebar-title-group">
+        <div id="sidebar-title" class="sidebar-title">Global Deforestation Presentation</div>
+        <div id="sidebar-region" class="sidebar-region tabular-nums">Universal ROI Selector</div>
+      </div>
+      <button id="sidebar-close-btn" class="sidebar-close-btn" title="Collapse panel" aria-label="Close sidebar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <!-- Hotspot Selector Chips (Shown for Global Deforestation) -->
+      <div id="hotspot-section" class="info-card">
+        <div class="info-card-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+          </svg>
+          Select Deforestation Region or Draw Square
+        </div>
+        <div class="hotspot-bar">
+          <button class="hotspot-chip active" data-preset="amazon">🇧🇷 Amazon Basin</button>
+          <button class="hotspot-chip" data-preset="congo">🇨🇩 Congo Basin</button>
+          <button class="hotspot-chip" data-preset="borneo">🇮🇩 Borneo (SE Asia)</button>
+          <button class="hotspot-chip" data-preset="chaco">🇵🇾 Gran Chaco</button>
+          <button class="hotspot-chip" data-preset="cerrado">🇧🇷 Cerrado</button>
+          <button class="hotspot-chip" id="draw-roi-chip">📐 Draw Custom</button>
+        </div>
+      </div>
+
+      <!-- Deforestation Executive KPI Cards (from pipeline.py schema) -->
+      <div id="kpi-section" class="info-card">
+        <div class="info-card-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>SAR Forest Canopy Dynamics</span>
+          <span id="roi-area-badge" class="tabular-nums" style="margin-left:auto; color:var(--accent-cyan); font-weight:700;">3,048 km²</span>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Baseline Canopy</span>
+            <span id="kpi-baseline" class="kpi-val accent-cyan">2,392 km²</span>
+            <span id="kpi-baseline-pct" class="kpi-sub">78.5% coverage</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Net Forest Lost</span>
+            <span id="kpi-lost" class="kpi-val accent-rose">-190.3 km²</span>
+            <span id="kpi-loss-pct" class="kpi-sub">-7.95% dissipated</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Peak Loss Speed</span>
+            <span id="kpi-speed" class="kpi-val accent-amber">43.2 km²/mo</span>
+            <span id="kpi-peak-month" class="kpi-sub">Aug (Dry Peak)</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Target Year</span>
+            <span id="kpi-year" class="kpi-val">2025</span>
+            <span id="kpi-pass" class="kpi-sub">DESCENDING pass</span>
+          </div>
+        </div>
+
+        <!-- Monthly Dissipation Speed Chart -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <span>Logging Dissipation Speed (km²/mo)</span>
+            <span id="chart-active-val" class="tabular-nums">Peak: 43.2 km²/mo</span>
+          </div>
+          <div id="chart-bars" class="chart-bars-wrap">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Mission Brief -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4"></path>
+            <path d="M12 8h.01"></path>
+          </svg>
+          Sensor & Observation
+        </div>
+        <div class="info-card-body">
+          <div style="margin-bottom: 4px;"><strong style="color: var(--ink);">Pipeline:</strong> <span id="sidebar-sensor">Sentinel-1 C-SAR (Universal ROI)</span></div>
+          <div style="margin-bottom: 8px;"><strong style="color: var(--ink);">Observation Period:</strong> <span id="sidebar-timeframe" class="tabular-nums">Monthly Sequence (2024–2026)</span></div>
+          <p id="sidebar-desc" style="color: var(--ink-secondary);">
+            Multi-temporal radar analysis monitoring deforestation dynamics across the 'Arc of Deforestation'. Radar microwaves penetrate dense cloud cover and wet season storms to expose ground clearing.
+          </p>
+        </div>
+      </div>
+
+      <!-- Spectral False-Color Interpretation Legend -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+          </svg>
+          SAR Spectral Composite Legend
+        </div>
+        <div id="sidebar-legend" class="legend-list">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </div>
+
+      <!-- Layer Display Controls -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+          </svg>
+          Display Calibration
+        </div>
+        <div class="layer-controls">
+          <div class="control-label-row">
+            <span>Radar Layer Opacity</span>
+            <span id="opacity-val" class="tabular-nums" style="color: var(--accent-cyan); font-weight: 600;">90%</span>
+          </div>
+          <input type="range" id="opacity-slider" class="range-slider" min="0" max="1" step="0.05" value="0.9" aria-label="Radar Layer Opacity">
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Bottom Interactive Timeline & Playback Dock -->
+  <section id="bottom-dock" class="glass-panel bottom-dock animate-enter-bottom" aria-label="Timelapse Playback Deck">
+    <div class="dock-header">
+      <div class="dock-status-group">
+        <div id="event-title" class="dock-event-title">Jan 2025: Baseline Observation</div>
+      </div>
+      <div id="date-badge" class="dock-date-badge tabular-nums">2025-01-01 → 2025-01-31</div>
+    </div>
+
+    <!-- Scrubber Slider -->
+    <div class="timeline-track-wrap">
+      <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="11" value="0" step="1" aria-label="Timeline Scrubber">
+      <div id="timeline-ticks" class="timeline-ticks">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Playback Control Bar -->
+    <div class="playback-bar">
+      <div class="playback-controls-left">
+        <button id="play-btn" class="play-btn" title="Play / Pause Timelapse (Spacebar)" aria-label="Play Timelapse">
+          <svg id="play-btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+
+        <button id="step-prev-btn" class="step-btn" title="Previous Frame (Left Arrow)" aria-label="Previous Frame">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5"></line>
+          </svg>
+        </button>
+
+        <button id="step-next-btn" class="step-btn" title="Next Frame (Right Arrow)" aria-label="Next Frame">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <line x1="19" y1="5" x2="19" y2="19"></line>
+          </svg>
+        </button>
+
+        <select id="speed-select" class="speed-select tabular-nums" title="Playback Speed" aria-label="Playback Speed">
+          <option value="2000">0.5x Speed</option>
+          <option value="1200" selected>1.0x Speed</option>
+          <option value="600">2.0x Speed</option>
+        </select>
+      </div>
+
+      <div class="playback-controls-right">
+        <!-- Compare with Baseline Toggle -->
+        <button id="compare-btn" class="compare-btn" title="A/B Flip: Compare with Pre-Storm / Baseline Frame (B)" aria-label="Compare with Baseline">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+          </svg>
+          <span>Baseline A/B Flip</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom Left HUD Telemetry -->
+  <footer class="glass-panel telemetry-hud tabular-nums animate-enter-bottom">
+    <div class="telemetry-item">
+      <span>COORD:</span>
+      <span id="hud-coords" class="telemetry-val">0.0000° N, 0.0000° E</span>
+    </div>
+    <div class="telemetry-item">
+      <span>ZOOM:</span>
+      <span id="hud-zoom" class="telemetry-val">10</span>
+    </div>
+    <div class="telemetry-item">
+      <span>DATUM:</span>
+      <span class="telemetry-val">WGS84</span>
+    </div>
+  </footer>
+
+  <!-- Modal / About Dialog -->
+  <div id="about-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="glass-panel modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title" style="color: var(--accent-cyan); font-size: 17px; display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          NASA Space Apps Challenge: Universal SAR Forest Change Platform
+        </h3>
+        <button id="modal-close-btn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      
+      <div style="font-size: 14px; line-height: 1.6; color: var(--ink-secondary); display: flex; flex-direction: column; gap: 14px;">
+        <p>
+          Welcome to <strong>AERO-WATCH</strong>. This platform provides multi-temporal Earth observation monitoring across critical planetary ecosystems and extreme weather events utilizing all-weather <strong>Copernicus Sentinel-1 Synthetic Aperture Radar (SAR)</strong>.
+        </p>
+
+        <h4 style="color: var(--ink); font-size: 14px; margin-top: 4px;">Universal Square Region Selector</h4>
+        <p>
+          You can click the <strong>Square Selector Tool</strong> (or press <code>[S]</code>) and draw a bounding box anywhere on Earth. The pipeline calculates the geodetic surface area, assesses baseline canopy coverage, tracks illegal logging dynamics, and quantifies tree dissipation speed in km²/month.
+        </p>
+
+        <h4 style="color: var(--ink); font-size: 14px; margin-top: 4px;">Global Deforestation Hotspots:</h4>
+        <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+          <li><strong>Amazon Basin (Rondônia, Brazil):</strong> Arc of Deforestation multi-year SAR sequence.</li>
+          <li><strong>Congo Basin (Mai-Ndombe, DR Congo):</strong> Africa's largest tropical carbon sink.</li>
+          <li><strong>Southeast Asia (Borneo, Indonesia):</strong> Peatland swamp forest conversion to oil palm.</li>
+          <li><strong>Gran Chaco (Paraguay):</strong> Rapid dry forest clearings for cattle ranching.</li>
+        </ul>
+
+        <h4 style="color: var(--ink); font-size: 14px; margin-top: 4px;">Tactile Keyboard Controls:</h4>
+        <div style="font-family: var(--font-mono); font-size: 12px; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-hairline); display: grid; grid-template-columns: auto 1fr; gap: 6px 14px;">
+          <span style="color: var(--accent-cyan);">[S]</span><span>Toggle Square ROI Drawing Tool</span>
+          <span style="color: var(--accent-cyan);">[Spacebar]</span><span>Play / Pause Timelapse</span>
+          <span style="color: var(--accent-cyan);">[←] / [→]</span><span>Step one frame backward / forward</span>
+          <span style="color: var(--accent-cyan);">[B]</span><span>Instant Baseline A/B Flip</span>
+          <span style="color: var(--accent-cyan);">[/]</span><span>Focus global location search</span>
+          <span style="color: var(--accent-cyan);">[I]</span><span>Toggle Analytics Drawer</span>
+          <span style="color: var(--accent-cyan);">[F]</span><span>Toggle Fullscreen Canvas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Engine -->
+  <script src="app.js"></script>
+</body>
+</html>
