@@ -20,7 +20,7 @@ from PIL import Image
 import ee
 
 
-def init_earth_engine(max_retries=5):
+def init_earth_engine(max_retries=5, interactive=True):
     """Initializes Earth Engine with automatic retry logic."""
     for attempt in range(max_retries):
         try:
@@ -28,6 +28,11 @@ def init_earth_engine(max_retries=5):
             return True
         except Exception as e:
             time.sleep(2)
+    if not interactive:
+        raise RuntimeError(
+            "Earth Engine initialization failed. Authenticate the server with "
+            "'earthengine authenticate' and configure its Earth Engine project."
+        )
     try:
         ee.Authenticate()
         ee.Initialize()
@@ -55,7 +60,7 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
     Returns:
       dict: Complete structured analysis with monthly series, KPIs, and image paths.
     """
-    init_earth_engine()
+    init_earth_engine(interactive=not quiet)
     
     if output_dir is None:
         output_dir = os.path.join("data", region_name)
@@ -70,20 +75,12 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
         print(f"Output directory: {output_dir}")
         print("-" * 65)
         
-    months = [
-        (f"{year}-01-01", f"{year}-01-31", f"Jan {year}"),
-        (f"{year}-02-01", f"{year}-02-28", f"Feb {year}"),
-        (f"{year}-03-01", f"{year}-03-31", f"Mar {year}"),
-        (f"{year}-04-01", f"{year}-04-30", f"Apr {year}"),
-        (f"{year}-05-01", f"{year}-05-31", f"May {year}"),
-        (f"{year}-06-01", f"{year}-06-30", f"Jun {year}"),
-        (f"{year}-07-01", f"{year}-07-31", f"Jul {year}"),
-        (f"{year}-08-01", f"{year}-08-31", f"Aug {year}"),
-        (f"{year}-09-01", f"{year}-09-30", f"Sep {year}"),
-        (f"{year}-10-01", f"{year}-10-31", f"Oct {year}"),
-        (f"{year}-11-01", f"{year}-11-30", f"Nov {year}"),
-        (f"{year}-12-01", f"{year}-12-31", f"Dec {year}")
-    ]
+    # Earth Engine's end date is exclusive; include the entire calendar month.
+    months = []
+    for month in range(1, 13):
+        start = datetime.date(year, month, 1)
+        end = datetime.date(year + 1, 1, 1) if month == 12 else datetime.date(year, month + 1, 1)
+        months.append((start.isoformat(), end.isoformat(), start.strftime("%b %Y")))
     
     # Query Sentinel-1 collection over the bbox
     base_col = (ee.ImageCollection("COPERNICUS/S1_GRD")
@@ -93,7 +90,7 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
                 .filter(ee.Filter.eq("instrumentMode", "IW")))
                 
     # Detect dominant orbit pass for consistency
-    desc_count = base_col.filterDate(f"{year}-01-01", f"{year}-12-31").filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING")).size().getInfo()
+    desc_count = base_col.filterDate(f"{year}-01-01", f"{year+1}-01-01").filter(ee.Filter.eq("orbitProperties_pass", "DESCENDING")).size().getInfo()
     orbit_pass = "DESCENDING" if desc_count > 0 else "ASCENDING"
     col = base_col.filter(ee.Filter.eq("orbitProperties_pass", orbit_pass))
     
@@ -103,11 +100,8 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
         sub = col.filterDate(s_date, e_date)
         count = sub.size().getInfo()
         
-        # Fallback to slightly expanded window if single month has temporal offset
         if count == 0:
-            exp_end = (datetime.datetime.strptime(e_date, "%Y-%m-%d") + datetime.timedelta(days=10)).strftime("%Y-%m-%d")
-            sub = col.filterDate(s_date, exp_end)
-            count = sub.size().getInfo()
+            raise ValueError(f"No Sentinel-1 {orbit_pass.lower()} observations for {m_label} in this region.")
             
         comp = sub.median().clip(geometry)
         vh = comp.select("VH")
@@ -121,6 +115,8 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
         
         f_km2 = round(f_stats.get("area", 0.0) or 0.0, 2)
         t_km2 = round(t_stats.get("area", 0.0) or 0.0, 2)
+        if t_km2 <= 0:
+            raise ValueError(f"No measurable area for {m_label} in this region.")
         f_pct = round((f_km2 / t_km2 * 100.0) if t_km2 > 0 else 0.0, 2)
         
         # Generate False-Color RGB:
@@ -142,8 +138,9 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
         try:
             resp = requests.get(url, timeout=60)
             if resp.status_code == 200:
-                with open(img_path, "wb") as f:
+                with open(img_path + ".tmp", "wb") as f:
                     f.write(resp.content)
+                os.replace(img_path + ".tmp", img_path)
         except Exception as e:
             if not quiet:
                 print(f"Warning: Failed to download thumbnail for {m_label}: {e}")
@@ -155,7 +152,8 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
             "month_num": m_idx + 1,
             "month_label": m_label,
             "start_date": s_date,
-            "end_date": e_date,
+            "end_date": (datetime.date.fromisoformat(e_date) - datetime.timedelta(days=1)).isoformat(),
+            "scene_count": count,
             "total_area_km2": t_km2,
             "forest_area_km2": f_km2,
             "forest_pct": f_pct,
@@ -165,7 +163,10 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
     df = pd.DataFrame(records)
     baseline_forest = df.loc[0, "forest_area_km2"]
     df["cumulative_loss_km2"] = round(baseline_forest - df["forest_area_km2"], 2)
-    df["pct_loss_from_baseline"] = round((df["cumulative_loss_km2"] / baseline_forest) * 100.0, 2)
+    df["pct_loss_from_baseline"] = (
+        round((df["cumulative_loss_km2"] / baseline_forest) * 100.0, 2)
+        if baseline_forest > 0 else None
+    )
     
     # Calculate monthly loss speed (km2 lost per month)
     df["monthly_loss_speed_km2"] = round(-df["forest_area_km2"].diff(), 2)
@@ -181,12 +182,20 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
         "bbox": bbox,
         "year": year,
         "orbit_pass": orbit_pass,
-        "total_region_area_km2": df["total_area_km2"].iloc[0],
+        "source": "COPERNICUS/S1_GRD",
+        "metrics_ready": True,
+        "method": {
+            "name": "Monthly median VH backscatter threshold",
+            "vh_threshold_db": vh_threshold_db,
+            "scale_m": scale,
+            "interpretation": "Radar-derived forest-cover estimate; not a validated land-cover classification."
+        },
+        "total_region_area_km2": float(df["total_area_km2"].iloc[0]),
         "baseline_jan_forest_km2": float(baseline_forest),
         "final_dec_forest_km2": float(df["forest_area_km2"].iloc[-1]),
         "total_forest_lost_km2": float(total_loss),
-        "net_loss_percentage": round(float(total_loss / baseline_forest * 100.0) if baseline_forest > 0 else 0.0, 2),
-        "peak_logging_month": peak_row["month_label"],
+        "net_loss_percentage": round(float(total_loss / baseline_forest * 100.0), 2) if baseline_forest > 0 else None,
+        "peak_logging_month": peak_row["month_label"] if peak_row["loss_speed_km2_month"] > 0 else None,
         "peak_monthly_loss_km2": float(peak_row["loss_speed_km2_month"]),
         "monthly_series": df.to_dict(orient="records")
     }
@@ -195,8 +204,9 @@ def analyze_forest_region(bbox, year=2025, region_name="custom_region",
     json_path = os.path.join(output_dir, "metrics.json")
     csv_path = os.path.join(output_dir, "metrics.csv")
     
-    with open(json_path, "w") as f:
-        json.dump(summary, f, indent=2)
+    with open(json_path + ".tmp", "w") as f:
+        json.dump(summary, f, indent=2, allow_nan=False)
+    os.replace(json_path + ".tmp", json_path)
     df.to_csv(csv_path, index=False)
     
     summary["metrics_json_path"] = json_path

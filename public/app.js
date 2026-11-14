@@ -5,67 +5,12 @@
 
 // Embedded Fallback Manifest for offline / standalone use
 const EMBEDDED_MANIFEST = {
-  "amazon": [
-    { "id": 0, "label": "2024 Q1 (Jan-Mar)", "startDate": "2024-01-01", "endDate": "2024-03-01", "image": "data/amazon/amazon_00.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 1, "label": "2024 Q2 (May-Jul)", "startDate": "2024-05-01", "endDate": "2024-07-01", "image": "data/amazon/amazon_01.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 2, "label": "2024 Q3 (Dry Season Peak)", "startDate": "2024-08-01", "endDate": "2024-10-01", "image": "data/amazon/amazon_02.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 3, "label": "2024 Q4 (Rainy Season)", "startDate": "2024-11-01", "endDate": "2025-01-01", "image": "data/amazon/amazon_03.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 4, "label": "2025 Q1 (Feb-Apr)", "startDate": "2025-02-01", "endDate": "2025-04-01", "image": "data/amazon/amazon_04.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 5, "label": "2025 Q3 (Jun-Aug)", "startDate": "2025-06-01", "endDate": "2025-08-01", "image": "data/amazon/amazon_05.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 6, "label": "2025 Q4 (Oct-Dec)", "startDate": "2025-10-01", "endDate": "2025-12-01", "image": "data/amazon/amazon_06.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 7, "label": "2026 H1 (Early 2026)", "startDate": "2026-02-01", "endDate": "2026-05-01", "image": "data/amazon/amazon_07.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] },
-    { "id": 8, "label": "2026 H2 (Mid 2026)", "startDate": "2026-06-01", "endDate": "2026-10-01", "image": "data/amazon/amazon_08.png", "bounds": [[-9.85, -63.35], [-9.35, -62.85]] }
-  ],
   "florida": [
     { "id": 0, "label": "Pre-Storm Baseline (Sept 2024)", "startDate": "2024-09-01", "endDate": "2024-09-20", "image": "data/florida/florida_00.png", "bounds": [[27.65, -82.85], [28.05, -82.35]] },
     { "id": 1, "label": "Hurricane Helene Surge (Sept 26, 2024)", "startDate": "2024-09-25", "endDate": "2024-09-28", "image": "data/florida/florida_01.png", "bounds": [[27.65, -82.85], [28.05, -82.35]] },
     { "id": 2, "label": "Between Storms (Early Oct 2024)", "startDate": "2024-10-01", "endDate": "2024-10-08", "image": "data/florida/florida_02.png", "bounds": [[27.65, -82.85], [28.05, -82.35]] },
     { "id": 3, "label": "Hurricane Milton Landfall (Oct 10-11, 2024)", "startDate": "2024-10-09", "endDate": "2024-10-14", "image": "data/florida/florida_03.png", "bounds": [[27.65, -82.85], [28.05, -82.35]] }
   ]
-};
-
-// Global Deforestation Fronts (World Presets matching pipeline.py)
-const DEFORESTATION_HOTSPOTS = {
-  amazon: {
-    key: "amazon",
-    name: "Amazon Basin (Rondônia, Brazil)",
-    bbox: [-63.35, -9.85, -62.85, -9.35], // [min_lon, min_lat, max_lon, max_lat]
-    flag: "🇧🇷",
-    description: "The classic 'fishbone' deforestation frontier along highway BR-364 in Rondônia. Multi-year Copernicus Sentinel-1 C-band SAR demonstrates rapid canopy dissipation and illegal logging penetration.",
-    year: 2025
-  },
-  congo: {
-    key: "congo",
-    name: "Congo Basin (Mai-Ndombe, DR Congo)",
-    bbox: [18.20, -2.50, 18.70, -2.00],
-    flag: "🇨🇩",
-    description: "Heart of the African tropical carbon sink. Facing high-speed artisanal logging corridors, fuelwood extraction, and slash-and-burn agricultural conversion.",
-    year: 2025
-  },
-  borneo: {
-    key: "borneo",
-    name: "Borneo (Kalimantan, Indonesia)",
-    bbox: [111.50, -2.20, 112.00, -1.70],
-    flag: "🇮🇩",
-    description: "Peatland tropical forest under immense commercial conversion to industrial oil palm monoculture, generating intense radar backscatter shifts.",
-    year: 2025
-  },
-  chaco: {
-    key: "chaco",
-    name: "Gran Chaco (Boquerón, Paraguay)",
-    bbox: [-61.80, -23.50, -61.30, -23.00],
-    flag: "🇵🇾",
-    description: "South America's largest dry tropical forest and one of the fastest disappearing biomes on Earth due to large-scale cattle ranching deforestation.",
-    year: 2025
-  },
-  cerrado: {
-    key: "cerrado",
-    name: "Cerrado Savanna (MATOPIBA, Brazil)",
-    bbox: [-46.50, -12.50, -46.00, -12.00],
-    flag: "🇧🇷",
-    description: "Megadiverse tropical savanna experiencing intense conversion into commercial mechanized soybean cultivation and agro-industrial plots.",
-    year: 2025
-  }
 };
 
 // Global App State
@@ -77,6 +22,8 @@ const state = {
   playbackSpeed: 1200,
   playTimer: null,
   overlayOpacity: 0.9,
+  imageView: 'original',
+  imageRenderId: 0,
   isComparing: false,
   showBoundsBox: true,
   baseMapKey: 'satellite',
@@ -84,27 +31,62 @@ const state = {
   activeOverlay: null,
   boundsRect: null,
   roiAnchorMarker: null,
-  pulseMarkers: [],
   baseMaps: {},
 
   // Square Selector State
   isDrawingSquare: false,
   drawStartLatLng: null,
   tempDrawRect: null,
-  activeRoiBBox: [-63.35, -9.85, -62.85, -9.35],
-  activeRoiName: "Amazon Basin (Rondônia)",
+  activeRoiBBox: null,
+  activeRoiName: "",
   activeRoiData: null,
-  activeFrames: []
+  activeFrames: [],
+  geePollTimer: null,
+  analysisRequestId: 0
 };
+
+const IMAGE_VIEW_NOTES = {
+  original: 'Original radar colors. Choose Enhanced radar for a clearer view.',
+  enhanced: 'Softer speckle and clearer contrast. Display only; measurements are unchanged.',
+  simple: 'Visual guide only: colors group similar radar patterns, not confirmed land cover. Measurements are unchanged.'
+};
+
+function updateImageViewControls() {
+  const select = document.getElementById('image-view-select');
+  const simpleOption = document.getElementById('simple-view-option');
+  simpleOption.disabled = state.activeMission !== 'deforestation';
+  select.value = state.imageView;
+  document.getElementById('image-view-note').textContent = IMAGE_VIEW_NOTES[state.imageView];
+  let legend = MISSION_METADATA[state.activeMission]?.legend || [];
+  if (state.imageView === 'simple' && state.activeMission === 'deforestation') {
+    legend = [
+      { color: 'swatch-simple-green', label: 'Green: vegetation-like radar pattern' },
+      { color: 'swatch-sand', label: 'Sand: exposed-ground or built-up pattern' },
+      { color: 'swatch-simple-blue', label: 'Blue: weak radar return; water and shadow can look similar' },
+      { color: 'swatch-mixed', label: 'Gray: mixed radar pattern' }
+    ];
+  }
+  document.getElementById('sidebar-legend').innerHTML = legend.map(item => `
+    <div class="legend-item"><span class="legend-swatch ${item.color}"></span><span>${item.label}</span></div>
+  `).join('');
+}
+
+function setImageView(mode) {
+  if (!Object.hasOwn(IMAGE_VIEW_NOTES, mode)) return;
+  state.imageView = mode === 'simple' && state.activeMission !== 'deforestation' ? 'enhanced' : mode;
+  updateImageViewControls();
+  if (state.imageView === 'simple') document.getElementById('map-legend-details').open = true;
+  renderActiveFrame();
+}
 
 // Metadata Profiles
 const MISSION_METADATA = {
   deforestation: {
-    title: "Global Deforestation Presentation",
-    region: "Universal ROI Square Selector",
+    title: "Forest observations",
+    region: "Draw a region on the map to begin",
     sensor: "Copernicus Sentinel-1 SAR (C-Band Microwave Radar)",
     timeframe: "Monthly Multi-Temporal Analysis",
-    description: "Interactive global deforestation observatory. Draw any square region of interest (ROI) across the globe or choose key tropical fronts to calculate forest canopy area, illegal logging dynamics, and tree dissipation speed in km²/month.",
+    description: "Compare monthly Sentinel-1 radar observations for a selected region. Forest cover is estimated from VH backscatter; measurements appear after satellite processing completes.",
     legend: [
       { color: "swatch-green", label: "Green (VH): Intact forest canopy volume scattering (dense biomass)" },
       { color: "swatch-red", label: "Red (VV - VH): Bare soil, cleared logging plots, pasture roads" },
@@ -112,7 +94,7 @@ const MISSION_METADATA = {
     ]
   },
   florida: {
-    title: "Florida Hurricane Inundation",
+    title: "Florida hurricanes",
     region: "Tampa Bay & Coastal Pinellas County, FL",
     sensor: "Copernicus Sentinel-1 SAR (C-Band Microwave Radar)",
     timeframe: "Sept - Oct 2024 (Helene & Milton Sequence)",
@@ -128,9 +110,9 @@ const MISSION_METADATA = {
     region: "Worldwide Planetary View",
     sensor: "NASA Earth Science & ESA Copernicus Constellations",
     timeframe: "Active Global Missions",
-    description: "Explore the planet in high resolution. Click on active radar observation beacons or use the square selector to analyze any forest or coastal region on Earth.",
+    description: "Explore the planet in high resolution. Search for a location, then draw a region to analyze forest change.",
     legend: [
-      { color: "swatch-blue", label: "Pulsing Blue Beacons: Active Sentinel-1 SAR Analysis Sites" }
+      { color: "swatch-blue", label: "Selected region: area used for satellite analysis" }
     ]
   }
 };
@@ -140,24 +122,50 @@ const MISSION_METADATA = {
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', async () => {
   initMap();
+  setSidebarVisible(!window.matchMedia('(max-width: 820px)').matches);
   await loadManifest();
   setupEventListeners();
   setupSearch();
-  initPulsingMarkers();
   setupSquareDrawingTool();
   
-  // Default to Global Deforestation Presentation (Amazon preset)
+  // Start with no selection; only a user-drawn region starts an analysis.
   switchMission('deforestation');
-  selectDeforestationHotspot('amazon');
 });
+
+function setSidebarVisible(visible) {
+  const sidebar = document.getElementById('mission-sidebar');
+  const toggle = document.getElementById('sidebar-toggle-btn');
+  const loader = document.getElementById('gee-loading');
+  sidebar.classList.toggle('collapsed', !visible);
+  sidebar.inert = !visible;
+  document.body.classList.toggle('sidebar-collapsed', !visible);
+  toggle.classList.toggle('active', visible);
+  toggle.setAttribute('aria-expanded', String(visible));
+
+  // Keep progress visible even when the inspector is tucked away.
+  if (visible) sidebar.insertBefore(loader, sidebar.querySelector('.sidebar-content'));
+  else document.body.appendChild(loader);
+  requestAnimationFrame(() => state.map?.invalidateSize({ pan: false }));
+}
+
+function mapFocusOptions() {
+  const dock = document.getElementById('bottom-dock');
+  const dockHeight = dock.getBoundingClientRect().height;
+  return {
+    paddingTopLeft: [32, 48],
+    paddingBottomRight: [76, dockHeight + 64],
+    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1.2,
+    maxZoom: 12
+  };
+}
 
 /* ==========================================================================
    MAP ENGINE INITIALIZATION
    ========================================================================== */
 function initMap() {
   state.map = L.map('map', {
-    center: [-9.6, -63.1],
-    zoom: 10,
+    center: [18, 0],
+    zoom: 3,
     zoomControl: false,
     attributionControl: true,
     minZoom: 2,
@@ -197,6 +205,10 @@ function initMap() {
   };
 
   state.baseMaps.satellite.addTo(state.map);
+
+  new ResizeObserver(() => {
+    state.map.invalidateSize({ pan: false });
+  }).observe(document.getElementById('map'));
 
   // Telemetry HUD Tracking
   state.map.on('mousemove', (e) => {
@@ -270,77 +282,6 @@ function normalizeImagePaths(manifestPath) {
 }
 
 /* ==========================================================================
-   PULSING RADAR BEACONS ON GLOBAL MAP
-   ========================================================================== */
-function initPulsingMarkers() {
-  const beacons = [
-    {
-      action: () => selectDeforestationHotspot('amazon'),
-      coords: [-9.6, -63.1],
-      title: 'Amazon Deforestation Observatory',
-      subtitle: 'Sentinel-1 C-Band SAR (Rondônia, Brazil)'
-    },
-    {
-      action: () => selectDeforestationHotspot('congo'),
-      coords: [-2.25, 18.45],
-      title: 'Congo Basin Rainforest Hotspot',
-      subtitle: 'Mai-Ndombe Tropical Peatland'
-    },
-    {
-      action: () => selectDeforestationHotspot('borneo'),
-      coords: [-1.95, 111.75],
-      title: 'Southeast Asia Deforestation Front',
-      subtitle: 'Kalimantan Palm Conversion'
-    },
-    {
-      action: () => switchMission('florida'),
-      coords: [27.85, -82.6],
-      title: 'Tampa Bay Hurricane Surge Tracking',
-      subtitle: 'Helene & Milton Flood Inundation'
-    }
-  ];
-
-  beacons.forEach(b => {
-    const icon = L.divIcon({
-      className: 'radar-pulse-icon',
-      html: `
-        <div class="radar-pulse-marker" title="${b.title}">
-          <div class="radar-pulse-ring"></div>
-          <div class="radar-pulse-ring-delayed"></div>
-          <div class="radar-pulse-core"></div>
-        </div>
-      `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18]
-    });
-
-    const marker = L.marker(b.coords, { icon }).addTo(state.map);
-    marker.bindPopup(`
-      <div style="font-family: var(--font-sans); min-width: 220px; padding: 4px 2px;">
-        <h4 style="margin: 0 0 4px; color: #00e5ff; font-size: 13px;">${b.title}</h4>
-        <p style="margin: 0 0 10px; font-size: 11px; color: #94a3b8;">${b.subtitle}</p>
-        <button id="popup-btn-${Math.random().toString(36).substr(2, 6)}" 
-                style="background: #00e5ff; color: #060911; border: none; padding: 5px 12px; border-radius: 4px; font-weight: 700; font-size: 11px; cursor: pointer;">
-          Inspect Region &rarr;
-        </button>
-      </div>
-    `);
-
-    marker.on('popupopen', (e) => {
-      const btn = e.popup.getElement().querySelector('button');
-      if (btn) {
-        btn.onclick = () => {
-          b.action();
-          state.map.closePopup();
-        };
-      }
-    });
-
-    state.pulseMarkers.push(marker);
-  });
-}
-
-/* ==========================================================================
    INTERACTIVE SQUARE SELECTOR (ROI BOUNDING BOX TOOL)
    ========================================================================== */
 function setupSquareDrawingTool() {
@@ -348,12 +289,14 @@ function setupSquareDrawingTool() {
   const toast = document.getElementById('drawing-toast');
   const squareBtn = document.getElementById('square-select-btn');
   const cancelBtn = document.getElementById('cancel-drawing-btn');
-  const drawChip = document.getElementById('draw-roi-chip');
+  const drawChip = document.getElementById('draw-region-btn');
 
   function toggleDrawingMode(enable) {
     state.isDrawingSquare = enable !== undefined ? enable : !state.isDrawingSquare;
+    squareBtn.setAttribute('aria-pressed', String(state.isDrawingSquare));
 
     if (state.isDrawingSquare) {
+      if (window.matchMedia('(max-width: 820px)').matches) setSidebarVisible(false);
       mapEl.classList.add('drawing-mode');
       toast.classList.add('active');
       squareBtn.classList.add('square-active');
@@ -427,28 +370,19 @@ function setupSquareDrawingTool() {
 }
 
 /* ==========================================================================
-   DEFORESTATION HOTSPOT PRESETS
-   ========================================================================== */
-function selectDeforestationHotspot(hotspotKey) {
-  const spot = DEFORESTATION_HOTSPOTS[hotspotKey];
-  if (!spot) return;
-
-  // Update active chips
-  document.querySelectorAll('.hotspot-chip').forEach(chip => {
-    chip.classList.toggle('active', chip.dataset.preset === hotspotKey);
-  });
-
-  selectDeforestationRoi(spot.bbox, spot.name, spot.year || 2025);
-}
-
-/* ==========================================================================
    SELECT & ANALYZE ROI SQUARE (Matching pipeline.py /api/analyze)
    ========================================================================== */
 async function selectDeforestationRoi(bbox, regionName, year = 2025) {
+  if (state.activeMission !== 'deforestation') switchMission('deforestation');
   state.activeRoiBBox = bbox;
   state.activeRoiName = regionName;
   stopPlayback();
   state.currentFrameIndex = 0;
+  document.getElementById('bottom-dock').hidden = false;
+
+  state.isComparing = false;
+  document.getElementById('compare-btn').classList.remove('active');
+  document.getElementById('compare-btn').setAttribute('aria-pressed', 'false');
 
   const [min_lon, min_lat, max_lon, max_lat] = bbox;
   const leafBounds = [[min_lat, min_lon], [max_lat, max_lon]];
@@ -456,16 +390,12 @@ async function selectDeforestationRoi(bbox, regionName, year = 2025) {
 
   // Update UI Header
   document.getElementById('sidebar-title').textContent = regionName;
-  document.getElementById('sidebar-region').textContent = `[${min_lon}°, ${min_lat}°] → [${max_lon}°, ${max_lat}°]`;
+  document.getElementById('sidebar-region').textContent = `Sentinel-1 radar · ${year}`;
   document.getElementById('roi-area-badge').textContent = `${areaKm2.toLocaleString()} km²`;
   document.getElementById('kpi-year').textContent = year;
 
   // Fly to Bounding Box
-  state.map.flyToBounds(leafBounds, {
-    padding: [90, 90],
-    duration: 1.8,
-    maxZoom: 12
-  });
+  state.map.flyToBounds(leafBounds, mapFocusOptions());
 
   // Render Glowing Bounding Box Rectangle
   if (state.boundsRect) {
@@ -473,11 +403,11 @@ async function selectDeforestationRoi(bbox, regionName, year = 2025) {
   }
 
   state.boundsRect = L.rectangle(leafBounds, {
-    color: '#00e5ff',
-    weight: 2,
+    color: '#73e2cf',
+    weight: 1.5,
     dashArray: '6, 6',
-    fillColor: '#00e5ff',
-    fillOpacity: 0.08
+    fillColor: '#73e2cf',
+    fillOpacity: 0.03
   }).addTo(state.map);
 
   // Render Floating Anchor Badge above rectangle
@@ -490,12 +420,11 @@ async function selectDeforestationRoi(bbox, regionName, year = 2025) {
     className: 'roi-anchor-div',
     html: `
       <div class="roi-anchor-badge">
-        <span>📐 ROI: <strong>${areaKm2.toLocaleString()} km²</strong></span>
-        <button class="roi-anchor-btn" onclick="triggerRoiAnalysis()">Analyze SAR</button>
+        <span>Selected region · <strong>${areaKm2.toLocaleString()} km²</strong></span>
       </div>
     `,
-    iconSize: [220, 28],
-    iconAnchor: [110, 36]
+    iconSize: [184, 30],
+    iconAnchor: [92, 42]
   });
 
   state.roiAnchorMarker = L.marker(topCenter, { icon: anchorIcon, interactive: true }).addTo(state.map);
@@ -506,154 +435,228 @@ async function selectDeforestationRoi(bbox, regionName, year = 2025) {
 
 // Trigger explicit pipeline analysis
 window.triggerRoiAnalysis = function() {
+  if (!state.activeRoiBBox) {
+    document.getElementById('square-select-btn').click();
+    return;
+  }
   fetchRoiAnalysis(state.activeRoiBBox, 2025, state.activeRoiName);
 };
 
 /* ==========================================================================
-   CALL API ANALYZE (OR FALLBACK) & UPDATE SIDEBAR CHARTS
+   REQUEST SATELLITE ANALYSIS & UPDATE SIDEBAR CHARTS
    ========================================================================== */
-async function fetchRoiAnalysis(bbox, year, regionName) {
-  let data = null;
-  const badge = document.getElementById('roi-area-badge');
-  if (badge) {
-    badge.innerHTML = `<span style="color:var(--accent-cyan);"><span class="indicator-blink"></span> Fetching SAR Data...</span>`;
-  }
-
-  try {
-    const res = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        bbox: bbox,
-        year: year,
-        region_name: regionName.toLowerCase().replace(/[^a-z0-9]/g, '_')
-      })
-    });
-
-    if (res.ok) {
-      data = await res.json();
-    }
-  } catch (err) {
-    console.warn('API call failed; using local client-side synthesis:', err);
-  }
-
-  // Fallback client simulation if server /api/analyze unreachable
-  if (!data) {
-    const area = calculateBBoxAreaKm2(bbox);
-    const baseForest = Math.round(area * 0.785);
-    const lostForest = Math.round(baseForest * 0.082);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const weights = [0.03, 0.04, 0.04, 0.05, 0.07, 0.11, 0.18, 0.22, 0.14, 0.06, 0.03, 0.03];
-
-    let currForest = baseForest;
-    const series = months.map((m, i) => {
-      const monthLoss = Math.round(lostForest * weights[i]);
-      if (i > 0) currForest = Math.max(0, currForest - monthLoss);
+function pendingRoiAnalysis(bbox, year) {
+  return {
+    year, region: null, metrics_ready: false, status: 'running',
+    total_region_area_km2: calculateBBoxAreaKm2(bbox),
+    monthly_series: Array.from({ length: 12 }, (_, index) => {
+      const month = String(index + 1).padStart(2, '0');
+      const days = new Date(Date.UTC(year, index + 1, 0)).getUTCDate();
       return {
-        month_num: i + 1,
-        month_label: `${m} ${year}`,
-        startDate: `${year}-${String(i + 1).padStart(2, '0')}-01`,
-        endDate: `${year}-${String(i + 1).padStart(2, '0')}-28`,
-        forest_area_km2: currForest,
-        loss_speed_km2_month: monthLoss,
-        image: `data/amazon/amazon_${Math.min(i, 8).toString().padStart(2, '0')}.png`,
-        bounds: [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
+        month_label: new Date(Date.UTC(year, index, 1)).toLocaleDateString('en', { month: 'short', year: 'numeric', timeZone: 'UTC' }),
+        start_date: `${year}-${month}-01`,
+        end_date: `${year}-${month}-${days}`,
+        forest_area_km2: null, loss_speed_km2_month: null, image_url: null
       };
-    });
-
-    data = {
-      total_region_area_km2: area,
-      baseline_jan_forest_km2: baseForest,
-      final_dec_forest_km2: currForest,
-      total_forest_lost_km2: lostForest,
-      net_loss_percentage: 8.2,
-      peak_logging_month: `Aug ${year}`,
-      peak_monthly_loss_km2: Math.round(lostForest * 0.22),
-      monthly_series: series
-    };
-  }
-
-  state.activeRoiData = data;
-  updateDeforestationUI(data, bbox);
+    })
+  };
 }
 
-/* ==========================================================================
-   UPDATE DEFORESTATION SIDEBAR & TIMELINE UI
-   ========================================================================== */
-function updateDeforestationUI(data, bbox) {
-  // Update Area Badge
-  const badge = document.getElementById('roi-area-badge');
-  if (badge) {
-    badge.textContent = `${Math.round(data.total_region_area_km2).toLocaleString()} km²`;
+async function fetchRoiAnalysis(bbox, year, regionName) {
+  const requestId = ++state.analysisRequestId;
+  globalThis.SarImageEffects?.clear();
+  clearTimeout(state.geePollTimer);
+  state.geePollTimer = null;
+  state.activeRoiData = pendingRoiAnalysis(bbox, year);
+  if (state.activeOverlay) {
+    state.map.removeLayer(state.activeOverlay);
+    state.activeOverlay = null;
   }
+  if (state.activeMission === 'deforestation') {
+    updateDeforestationUI(state.activeRoiData, bbox);
+    setGeeLoading(true);
+  }
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bbox, year, region_name: regionNameKey(regionName) })
+    });
+    if (!res.ok) {
+      const failure = await res.json().catch(() => ({}));
+      throw new Error(failure.error || 'Satellite analysis is unavailable. Run the app with server.py.');
+    }
+    const data = await res.json();
+    if (requestId !== state.analysisRequestId) return;
+    if (data.source !== 'COPERNICUS/S1_GRD' || typeof data.metrics_ready !== 'boolean') {
+      throw new Error('Restart server.py to enable satellite-derived measurements.');
+    }
+    state.activeRoiData = data;
+    if (state.activeMission === 'deforestation') {
+      updateDeforestationUI(data, bbox);
+      pollGeneratedFrames(data.region, requestId);
+    }
+  } catch (err) {
+    if (requestId === state.analysisRequestId) showAnalysisError(err.message);
+  }
+}
 
-  // Update KPI Metrics Cards
-  document.getElementById('kpi-baseline').textContent = `${Math.round(data.baseline_jan_forest_km2).toLocaleString()} km²`;
-  const baseCoverage = ((data.baseline_jan_forest_km2 / data.total_region_area_km2) * 100).toFixed(1);
-  document.getElementById('kpi-baseline-pct').textContent = `${baseCoverage}% coverage`;
+function formatMeasurement(value, unit = 'km²') {
+  return Number.isFinite(value)
+    ? `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}`
+    : '—';
+}
 
-  document.getElementById('kpi-lost').textContent = `-${Math.round(data.total_forest_lost_km2).toLocaleString()} km²`;
-  document.getElementById('kpi-loss-pct').textContent = `-${data.net_loss_percentage}% dissipated`;
-
-  document.getElementById('kpi-speed').textContent = `${data.peak_monthly_loss_km2} km²/mo`;
-  document.getElementById('kpi-peak-month').textContent = `Peak: ${data.peak_logging_month}`;
-
-  // Render Monthly Dissipation Speed Bars
-  const barsContainer = document.getElementById('chart-bars');
+function updateDeforestationUI(data, bbox) {
+  document.getElementById('kpi-section').hidden = false;
+  document.getElementById('bottom-dock').hidden = false;
+  const measured = data.metrics_ready === true;
   const series = data.monthly_series || [];
-  const maxSpeed = Math.max(...series.map(s => s.loss_speed_km2_month || 1));
+  document.getElementById('roi-area-badge').textContent = formatMeasurement(data.total_region_area_km2);
+  document.getElementById('metrics-status').textContent = measured
+    ? 'Sentinel-1 SAR · Radar-derived estimates'
+    : data.error ? 'Satellite analysis unavailable' : 'Waiting for satellite measurements';
+  document.getElementById('metrics-method').textContent = measured
+    ? `Monthly median VH > ${data.method.vh_threshold_db} dB · ${data.method.scale_m} m analysis scale. Radar-derived forest-cover estimates, not a validated land-cover classification.`
+    : 'Forest measurements will appear after satellite processing completes.';
+  document.getElementById('kpi-baseline').textContent = measured ? formatMeasurement(data.baseline_jan_forest_km2) : '—';
+  const area = data.total_region_area_km2;
+  const baseline = data.baseline_jan_forest_km2;
+  document.getElementById('kpi-baseline-pct').textContent = measured && area > 0 && Number.isFinite(baseline)
+    ? `${(baseline / area * 100).toFixed(1)}% estimated coverage` : 'Awaiting analysis';
 
-  barsContainer.innerHTML = series.map((item, idx) => {
-    const heightPct = Math.max(12, Math.round((item.loss_speed_km2_month / maxSpeed) * 100));
+  const lost = data.total_forest_lost_km2;
+  document.getElementById('kpi-lost').textContent = measured && Number.isFinite(lost)
+    ? `${lost > 0 ? '−' : lost < 0 ? '+' : ''}${formatMeasurement(Math.abs(lost))}` : '—';
+  const change = data.net_loss_percentage;
+  document.getElementById('kpi-loss-pct').textContent = measured && Number.isFinite(change)
+    ? `${Math.abs(change)}% ${change < 0 ? 'increase' : 'decrease'}`
+    : measured ? 'No baseline forest to compare' : 'Awaiting analysis';
+  document.getElementById('kpi-speed').textContent = measured ? formatMeasurement(data.peak_monthly_loss_km2, 'km²/mo') : '—';
+  document.getElementById('kpi-peak-month').textContent = measured
+    ? data.peak_logging_month ? `Peak: ${data.peak_logging_month}` : 'No monthly loss detected'
+    : 'Awaiting analysis';
+  document.getElementById('kpi-year').textContent = data.year;
+  document.getElementById('kpi-pass').textContent = data.orbit_pass
+    ? `${data.orbit_pass.toLowerCase()} pass` : 'Orbit pending';
+
+  const maxSpeed = Math.max(1, ...series.map(item => item.loss_speed_km2_month || 0));
+  document.getElementById('chart-bars').innerHTML = measured ? series.map((item, idx) => {
+    const speed = item.loss_speed_km2_month;
+    const height = Math.max(0, speed / maxSpeed * 100);
     return `
-      <div class="chart-bar-col ${idx === 0 ? 'active' : ''}" 
-           data-index="${idx}"
-           title="${item.month_label}: ${item.loss_speed_km2_month} km²/mo loss"
-           onclick="jumpToFrame(${idx})">
-        <div class="chart-bar-fill" style="height: ${heightPct}%;"></div>
+      <button type="button" class="chart-bar-col" data-index="${idx}"
+        aria-label="${item.month_label}: ${speed} km² estimated forest-cover loss"
+        title="${item.month_label}: ${speed} km²/mo" onclick="jumpToFrame(${idx})">
+        <span class="chart-bar-fill" style="height:${height}%;min-height:${speed > 0 ? 3 : 0}px"></span>
         <span class="chart-bar-label">${item.month_label.split(' ')[0][0]}</span>
-      </div>
-    `;
-  }).join('');
+      </button>`;
+  }).join('') : '';
+  document.getElementById('chart-active-val').textContent = measured ? 'km² / month' : 'Awaiting measurements';
 
-  // Setup Active Frames for Timeline Playback
-  // If Amazon, use actual multi-temporal images; otherwise synthesize frames
-  const isAmazon = Math.abs(bbox[0] - (-63.35)) < 0.2;
-  const amazonManifest = (state.manifest && state.manifest.amazon) || EMBEDDED_MANIFEST.amazon;
-
+  // Preserve the selected date and any already-downloaded images as metrics arrive.
+  const existingImages = new Map(state.activeFrames.map(frame => [frame.sourceImage, frame.image]));
+  const frameRegionKey = data.region || regionNameKey(state.activeRoiName);
   state.activeFrames = series.map((item, idx) => {
-    const imgUrl = item.image_url || (isAmazon 
-      ? (amazonManifest[Math.min(idx, amazonManifest.length - 1)].resolvedImage || amazonManifest[Math.min(idx, amazonManifest.length - 1)].image)
-      : `/data/amazon/amazon_${Math.min(idx, 8).toString().padStart(2, '0')}.png`);
-
+    const sourceImage = item.image || `${frameRegionKey}_${data.year}_${String(idx + 1).padStart(2, '0')}.png`;
     return {
       id: idx,
-      label: `${item.month_label}: ${Math.round(item.forest_area_km2).toLocaleString()} km² Forest`,
-      startDate: item.start_date || `${data.year}-${String(idx + 1).padStart(2, '0')}-01`,
-      endDate: item.end_date || `${data.year}-${String(idx + 1).padStart(2, '0')}-28`,
+      label: measured
+        ? `${item.month_label} · ${formatMeasurement(item.forest_area_km2)} estimated forest`
+        : `${item.month_label} · Satellite imagery`,
+      startDate: item.start_date,
+      endDate: item.end_date,
       bounds: [[bbox[1], bbox[0]], [bbox[3], bbox[2]]],
-      image: imgUrl,
-      loss_speed: item.loss_speed_km2_month
+      image: item.image_url || existingImages.get(sourceImage) || null,
+      sourceImage,
+      loss_speed: measured ? item.loss_speed_km2_month : null
     };
   });
-
-  // Setup Timeline Slider & Ticks
+  state.currentFrameIndex = Math.max(0, Math.min(state.currentFrameIndex, state.activeFrames.length - 1));
   const slider = document.getElementById('timeline-slider');
   slider.min = 0;
-  slider.max = state.activeFrames.length - 1;
-  slider.value = 0;
-
-  const ticksWrap = document.getElementById('timeline-ticks');
-  ticksWrap.innerHTML = state.activeFrames.map((f, i) => `
-    <span class="timeline-tick-label ${i === 0 ? 'active' : ''}" 
-          data-index="${i}" 
-          onclick="jumpToFrame(${i})">
-      ${f.startDate.split('-')[1]}
-    </span>
-  `).join('');
-
-  // Render initial frame
+  slider.max = Math.max(0, state.activeFrames.length - 1);
+  slider.value = state.currentFrameIndex;
+  document.getElementById('timeline-ticks').innerHTML = state.activeFrames.map(frame =>
+    `<span class="timeline-tick-label">${frame.startDate.split('-')[1]}</span>`
+  ).join('');
   renderActiveFrame();
+}
+
+function regionNameKey(name) {
+  return String(name || 'custom_roi').toLowerCase().replace(/[^a-z0-9]/g, '_');
+}
+
+function setGeeLoading(isLoading, message = '', loaded = 0, total = 12, isError = false) {
+  const loader = document.getElementById('gee-loading');
+  if (!loader) return;
+  loader.querySelector('strong').textContent = isError ? 'Satellite data unavailable' : 'Analyzing satellite observations';
+  loader.querySelector('small').textContent = message || 'Calculating forest cover from Sentinel-1 radar…';
+  document.getElementById('gee-progress-fill').style.width = `${Math.min(100, Math.round(loaded / Math.max(1, total) * 100))}%`;
+  document.getElementById('gee-progress-label').textContent = `${loaded} / ${total} images ready`;
+  loader.hidden = !isLoading && !isError;
+}
+
+function showAnalysisError(message) {
+  if (state.activeRoiData) {
+    state.activeRoiData.error = message;
+    state.activeRoiData.status = 'error';
+  }
+  if (state.activeMission !== 'deforestation') return;
+  document.getElementById('metrics-status').textContent = 'Satellite analysis unavailable';
+  setGeeLoading(false, message, state.activeFrames.filter(frame => frame.image).length, 12, true);
+}
+
+function scheduleAnalysisPoll(regionKey, requestId) {
+  clearTimeout(state.geePollTimer);
+  state.geePollTimer = setTimeout(() => pollGeneratedFrames(regionKey, requestId), 2500);
+}
+
+async function pollGeneratedFrames(regionKey, requestId = state.analysisRequestId) {
+  if (!regionKey || state.activeMission !== 'deforestation' || requestId !== state.analysisRequestId) return;
+  try {
+    const res = await fetch(`/api/analyze/status?region_name=${encodeURIComponent(regionKey)}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Unable to retrieve satellite analysis results.');
+    const status = await res.json();
+    if (state.activeMission !== 'deforestation' || requestId !== state.analysisRequestId || state.activeRoiData?.region !== regionKey) return;
+    if (status.region !== regionKey) throw new Error('Received results for a different analysis region.');
+    const images = new Map((status.images || []).map(item => [item.filename, item.image_url]));
+    let changed = false;
+    state.activeFrames.forEach(frame => {
+      const url = images.get(frame.sourceImage);
+      if (url && frame.image !== url) { frame.image = url; changed = true; }
+    });
+    if (status.metrics_ready && status.metrics && !state.activeRoiData.metrics_ready) {
+      const metrics = status.metrics;
+      if (metrics.region !== regionKey || metrics.source !== 'COPERNICUS/S1_GRD'
+          || metrics.year !== state.activeRoiData.year
+          || JSON.stringify(metrics.bbox) !== JSON.stringify(state.activeRoiBBox)
+          || metrics.monthly_series?.length !== 12 || !metrics.method) {
+        throw new Error('Satellite measurements do not match this region and year.');
+      }
+      state.activeRoiData = metrics;
+      updateDeforestationUI(metrics, state.activeRoiBBox);
+    } else if (changed) renderActiveFrame();
+    const ready = state.activeFrames.filter(frame => frame.image).length;
+    const total = state.activeFrames.length || 12;
+    if (status.status === 'error') {
+      showAnalysisError(status.error || 'Satellite processing failed. Select the region to retry.');
+      return;
+    }
+    if (status.status === 'complete') {
+      if (!state.activeRoiData.metrics_ready) {
+        showAnalysisError('Satellite processing ended without forest measurements.');
+      } else if (ready < total) {
+        setGeeLoading(false, 'Forest estimates are ready, but some image downloads failed.', ready, total, true);
+      } else {
+        setGeeLoading(false, '', ready, total);
+      }
+      return;
+    }
+    setGeeLoading(true, ready >= total ? 'Images ready; finalizing forest measurements…' : '', ready, total);
+    scheduleAnalysisPoll(regionKey, requestId);
+  } catch (err) {
+    if (requestId === state.analysisRequestId && state.activeRoiData?.region === regionKey) showAnalysisError(err.message);
+  }
 }
 
 /* ==========================================================================
@@ -661,10 +664,18 @@ function updateDeforestationUI(data, bbox) {
    ========================================================================== */
 function switchMission(missionKey) {
   state.activeMission = missionKey;
+  state.imageRenderId++;
+  if (missionKey !== 'deforestation' && state.imageView === 'simple') state.imageView = 'enhanced';
+  updateImageViewControls();
   stopPlayback();
   state.currentFrameIndex = 0;
   state.isComparing = false;
   document.getElementById('compare-btn').classList.remove('active');
+  document.getElementById('compare-btn').setAttribute('aria-pressed', 'false');
+
+  clearInterval(state.geePollTimer);
+  state.geePollTimer = null;
+  if (missionKey !== 'deforestation') setGeeLoading(false);
 
   // Navigation Pill State
   document.querySelectorAll('.mission-btn').forEach(btn => {
@@ -673,23 +684,18 @@ function switchMission(missionKey) {
     btn.setAttribute('aria-pressed', isActive);
   });
 
-  // Toggle Visibility of Hotspot & KPI Sections
-  const hotspotSec = document.getElementById('hotspot-section');
-  const kpiSec = document.getElementById('kpi-section');
-
-  if (missionKey === 'deforestation') {
-    hotspotSec.style.display = 'block';
-    kpiSec.style.display = 'block';
-    document.getElementById('bottom-dock').style.display = 'flex';
-  } else if (missionKey === 'florida') {
-    hotspotSec.style.display = 'none';
-    kpiSec.style.display = 'none';
-    document.getElementById('bottom-dock').style.display = 'flex';
-  } else {
-    // Global
-    hotspotSec.style.display = 'none';
-    kpiSec.style.display = 'none';
-    document.getElementById('bottom-dock').style.display = 'none';
+  const hasForestRegion = missionKey === 'deforestation' && state.activeRoiData !== null;
+  document.getElementById('region-section').hidden = missionKey !== 'deforestation';
+  document.getElementById('kpi-section').hidden = !hasForestRegion;
+  document.getElementById('bottom-dock').hidden = missionKey === 'global'
+    || (missionKey === 'deforestation' && !hasForestRegion);
+  if (missionKey === 'deforestation' && !hasForestRegion) {
+    state.activeFrames = [];
+    if (state.activeOverlay) {
+      state.map.removeLayer(state.activeOverlay);
+      state.activeOverlay = null;
+    }
+    setGeeLoading(false);
   }
 
   // Update Mission Sidebar Text
@@ -701,13 +707,18 @@ function switchMission(missionKey) {
     document.getElementById('sidebar-timeframe').textContent = meta.timeframe;
     document.getElementById('sidebar-desc').textContent = meta.description;
 
-    const legendContainer = document.getElementById('sidebar-legend');
-    legendContainer.innerHTML = meta.legend.map(item => `
-      <div class="legend-item">
-        <span class="legend-swatch ${item.color}"></span>
-        <span>${item.label}</span>
-      </div>
-    `).join('');
+  }
+
+  if (missionKey === 'deforestation' && state.activeRoiData) {
+    document.getElementById('sidebar-title').textContent = state.activeRoiName;
+    document.getElementById('sidebar-region').textContent = `Sentinel-1 radar · ${state.activeRoiData.year || 2025}`;
+    if (state.boundsRect) state.boundsRect.addTo(state.map);
+    if (state.roiAnchorMarker) state.roiAnchorMarker.addTo(state.map);
+    updateDeforestationUI(state.activeRoiData, state.activeRoiBBox);
+    if (state.activeRoiData.region) pollGeneratedFrames(state.activeRoiData.region);
+    if (state.activeRoiData.error) showAnalysisError(state.activeRoiData.error);
+    const [west, south, east, north] = state.activeRoiBBox;
+    state.map.flyToBounds([[south, west], [north, east]], mapFocusOptions());
   }
 
   // Handle Global View
@@ -722,6 +733,7 @@ function switchMission(missionKey) {
   // Handle Florida Hurricane Mission
   if (missionKey === 'florida') {
     if (state.roiAnchorMarker) state.map.removeLayer(state.roiAnchorMarker);
+    if (state.boundsRect) state.map.removeLayer(state.boundsRect);
     const flFrames = (state.manifest && state.manifest.florida) || EMBEDDED_MANIFEST.florida;
     state.activeFrames = flFrames;
 
@@ -739,7 +751,7 @@ function switchMission(missionKey) {
       </span>
     `).join('');
 
-    state.map.flyToBounds(flFrames[0].bounds, { padding: [80, 80], duration: 1.8 });
+    state.map.flyToBounds(flFrames[0].bounds, mapFocusOptions());
     renderActiveFrame();
     return;
   }
@@ -749,6 +761,7 @@ function switchMission(missionKey) {
    FRAME RENDERING & IMAGE OVERLAY
    ========================================================================== */
 function renderActiveFrame() {
+  const renderId = ++state.imageRenderId;
   const frames = state.activeFrames;
   if (!frames || !frames.length) return;
 
@@ -766,7 +779,7 @@ function renderActiveFrame() {
   });
 
   const chartVal = document.getElementById('chart-active-val');
-  if (chartVal && frame.loss_speed) {
+  if (chartVal && Number.isFinite(frame.loss_speed)) {
     chartVal.textContent = `${frame.startDate.substring(0, 7)}: ${frame.loss_speed} km²/mo`;
   }
 
@@ -780,6 +793,7 @@ function renderActiveFrame() {
   // Remove existing overlay
   if (state.activeOverlay) {
     state.map.removeLayer(state.activeOverlay);
+    state.activeOverlay = null;
   }
 
   // Render Image Overlay
@@ -789,6 +803,24 @@ function renderActiveFrame() {
       interactive: false,
       crossOrigin: true
     }).addTo(state.map);
+    if (state.imageView !== 'original') {
+      const overlay = state.activeOverlay;
+      const mode = state.imageView;
+      const effects = globalThis.SarImageEffects;
+      document.getElementById('image-view-note').textContent = 'Preparing the clearer image…';
+      const processed = effects ? effects.render(imgUrl, mode) : Promise.reject(new Error('Image processing is unavailable.'));
+      processed.then(url => {
+        if (renderId !== state.imageRenderId || overlay !== state.activeOverlay) return;
+        overlay.setUrl(url);
+        document.getElementById('image-view-note').textContent = IMAGE_VIEW_NOTES[mode];
+      }).catch(error => {
+        if (renderId !== state.imageRenderId || overlay !== state.activeOverlay) return;
+        state.imageView = 'original';
+        updateImageViewControls();
+        document.getElementById('image-view-note').textContent = 'Enhancement unavailable for this image. Showing original radar.';
+        console.warn('Radar image enhancement failed:', error);
+      });
+    }
   }
 }
 
@@ -804,7 +836,9 @@ function togglePlayback() {
 }
 
 function startPlayback() {
+  if (!state.activeFrames.length || state.activeMission === 'global') return;
   state.isPlaying = true;
+  document.getElementById('play-btn').setAttribute('aria-label', 'Pause timelapse');
   document.getElementById('play-btn-icon').innerHTML = `
     <rect x="6" y="4" width="4" height="16" fill="currentColor" />
     <rect x="14" y="4" width="4" height="16" fill="currentColor" />
@@ -823,6 +857,7 @@ function startPlayback() {
 
 function stopPlayback() {
   state.isPlaying = false;
+  document.getElementById('play-btn').setAttribute('aria-label', 'Play timelapse');
   if (state.playTimer) {
     clearInterval(state.playTimer);
     state.playTimer = null;
@@ -836,6 +871,7 @@ function stopPlayback() {
 function stepFrame(delta) {
   stopPlayback();
   const frames = state.activeFrames;
+  if (!frames.length || state.activeMission === 'global') return;
   let next = state.currentFrameIndex + delta;
   if (next < 0) next = frames.length - 1;
   if (next >= frames.length) next = 0;
@@ -853,15 +889,17 @@ function jumpToFrame(index) {
    A/B BASELINE COMPARISON
    ========================================================================== */
 function toggleCompare() {
+  if (!state.activeFrames.length || state.activeMission === 'global') return;
   state.isComparing = !state.isComparing;
   const btn = document.getElementById('compare-btn');
   btn.classList.toggle('active', state.isComparing);
+  btn.setAttribute('aria-pressed', String(state.isComparing));
 
   if (state.isComparing) {
     state.savedFrameIndex = state.currentFrameIndex;
     state.currentFrameIndex = 0;
     renderActiveFrame();
-    document.getElementById('event-title').textContent = "🔍 [BASELINE FLIP] " + document.getElementById('event-title').textContent;
+    document.getElementById('event-title').textContent = "Baseline · " + document.getElementById('event-title').textContent;
   } else {
     state.currentFrameIndex = state.savedFrameIndex || 0;
     renderActiveFrame();
@@ -872,17 +910,13 @@ function toggleCompare() {
    EVENT LISTENERS & CONTROLS
    ========================================================================== */
 function setupEventListeners() {
+  document.getElementById('image-view-select').addEventListener('change', event => {
+    setImageView(event.target.value);
+  });
   // Mission Selector Buttons
   document.querySelectorAll('.mission-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchMission(btn.dataset.mission);
-    });
-  });
-
-  // Hotspot Preset Chips
-  document.querySelectorAll('.hotspot-chip[data-preset]').forEach(chip => {
-    chip.addEventListener('click', () => {
-      selectDeforestationHotspot(chip.dataset.preset);
     });
   });
 
@@ -926,10 +960,12 @@ function setupEventListeners() {
   basemapToggle.addEventListener('click', (e) => {
     e.stopPropagation();
     basemapMenu.classList.toggle('open');
+    basemapToggle.setAttribute('aria-expanded', String(basemapMenu.classList.contains('open')));
   });
 
   document.addEventListener('click', () => {
     basemapMenu.classList.remove('open');
+    basemapToggle.setAttribute('aria-expanded', 'false');
   });
 
   document.querySelectorAll('.basemap-opt').forEach(opt => {
@@ -940,8 +976,12 @@ function setupEventListeners() {
         state.baseMaps[key].addTo(state.map);
         state.baseMapKey = key;
 
-        document.querySelectorAll('.basemap-opt').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.basemap-opt').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         opt.classList.add('active');
+        opt.setAttribute('aria-pressed', 'true');
 
         if (state.activeOverlay) state.activeOverlay.bringToFront();
       }
@@ -954,21 +994,36 @@ function setupEventListeners() {
   const sidebarClose = document.getElementById('sidebar-close-btn');
 
   sidebarToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    sidebarToggle.classList.toggle('active', !sidebar.classList.contains('collapsed'));
+    setSidebarVisible(sidebar.classList.contains('collapsed'));
   });
 
   sidebarClose.addEventListener('click', () => {
-    sidebar.classList.add('collapsed');
-    sidebarToggle.classList.remove('active');
+    setSidebarVisible(false);
+    sidebarToggle.focus();
+  });
+
+  window.matchMedia('(max-width: 820px)').addEventListener('change', event => {
+    setSidebarVisible(!event.matches);
   });
 
   // Modal / About Dialog
   const modal = document.getElementById('about-modal');
-  document.getElementById('about-btn').addEventListener('click', () => modal.classList.add('open'));
-  document.getElementById('modal-close-btn').addEventListener('click', () => modal.classList.remove('open'));
+  let helpReturnFocus;
+  function closeHelp() {
+    modal.classList.remove('open');
+    modal.inert = true;
+    helpReturnFocus?.focus();
+  }
+  function openHelp() {
+    helpReturnFocus = document.activeElement;
+    modal.inert = false;
+    modal.classList.add('open');
+    document.getElementById('modal-close-btn').focus();
+  }
+  document.getElementById('about-btn').addEventListener('click', openHelp);
+  document.getElementById('modal-close-btn').addEventListener('click', closeHelp);
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.classList.remove('open');
+    if (e.target === modal) closeHelp();
   });
 
   // Fullscreen Button
@@ -982,13 +1037,28 @@ function setupEventListeners() {
 
   // Keyboard Shortcuts (S: Square Tool, Space: Play/Pause, Arrows: Step frames, etc.)
   window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') {
+    if (modal.classList.contains('open')) {
+      if (e.code === 'Escape') closeHelp();
+      else if (e.code === 'Tab') {
+        e.preventDefault();
+        document.getElementById('modal-close-btn').focus();
+      }
+      return;
+    }
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) {
       if (e.code === 'Escape') {
         e.target.blur();
         document.getElementById('search-results').style.display = 'none';
       }
       return;
     }
+
+    if (e.key === '?') {
+      e.preventDefault();
+      openHelp();
+      return;
+    }
+    if ((e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') && e.target.closest('button, summary')) return;
 
     if (e.code === 'KeyS') {
       e.preventDefault();
@@ -1015,8 +1085,8 @@ function setupEventListeners() {
       e.preventDefault();
       document.getElementById('search-input').focus();
     } else if (e.code === 'Escape') {
-      modal.classList.remove('open');
       basemapMenu.classList.remove('open');
+      basemapToggle.setAttribute('aria-expanded', 'false');
       document.getElementById('search-results').style.display = 'none';
       if (state.isDrawingSquare) {
         document.getElementById('cancel-drawing-btn').click();
