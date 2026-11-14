@@ -19,9 +19,9 @@ An interactive, high-performance world map application designed for monitoring E
 - **Featured Observatories & Datasets**:
   - 🌲 **Global Deforestation Presentation & ROI Square Selector**:
     - **Interactive Square Selector**: Click the Square tool (or press `[S]`) and drag anywhere on the globe to draw a custom bounding box `[min_lon, min_lat, max_lon, max_lat]`.
-    - **Universal SAR Change Detection**: Dynamically calculates geodetic area (km²), baseline canopy cover, illegal logging dissipation speeds (km²/month), and peak logging intervals based on [pipeline.py](file:///home/azzizou/Work/nasa_space_challenge/pipeline.py).
+    - **SAR Change Detection**: Calculates selection area (km²), radar-derived baseline forest cover, monthly forest-cover change (km²/month), and peak monthly loss using [pipeline.py](pipeline.py).
     - **Custom regions only**: The map starts without a selected area or an automatic analysis. Search for a location and draw a bounding box to begin.
-    - **Monthly Dissipation Speed Chart**: Interactive bar chart displaying monthly tree cover loss speed across the year.
+    - **Monthly Forest Loss Chart**: Interactive bar chart displaying changes in estimated forest cover across the year.
   - 🌀 **Florida Hurricane Inundation (Tampa Bay, USA)**: Sept–Oct 2024 sequence tracking storm surge and urban flooding across Hurricanes Helene and Milton.
   - 🌍 **Global View**: Interactive world overview without preset region markers.
 
@@ -42,13 +42,18 @@ An interactive, high-performance world map application designed for monitoring E
     - Dark/Black: Calm water / flood surge specular reflection
 
 - **Global Geocoder**:
-  - Integrated OpenStreetMap Nominatim search to instantly fly to any city, coordinate, or landmark on Earth.
+  - Integrated OpenStreetMap Nominatim search to fly to cities and landmarks on Earth.
 
 ---
 
 ## 🚀 Quick Start
 
 ### Option 1: Development Server (Recommended)
+You need Python 3.10 or newer, a modern browser, internet access, and a Google account
+with access to an Earth Engine enabled Google Cloud project. Node.js is only needed
+for the JavaScript regression tests. The frontend uses plain HTML, CSS, and JavaScript;
+there is no npm install or frontend build step.
+
 Create the project environment and install the Earth Engine pipeline dependencies once:
 
 ```bash
@@ -56,7 +61,15 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
-Launch the included zero-dependency Python server:
+Authenticate Earth Engine and set your project before starting the server. Replace
+`YOUR_PROJECT_ID` with your Google Cloud project ID:
+
+```bash
+.venv/bin/earthengine authenticate
+.venv/bin/earthengine set_project YOUR_PROJECT_ID
+```
+
+Launch the included Python server:
 
 ```bash
 .venv/bin/python server.py
@@ -70,6 +83,10 @@ The cards show “Awaiting analysis” until the run finishes; failures remain v
 fall back to simulated coverage or seasonal loss rates. Restart `server.py` after updating.
 Earth Engine must already be authenticated and configured with an enabled project; background
 requests do not open an interactive login prompt.
+
+To use a different port, run `.venv/bin/python server.py 8080` and open
+`http://localhost:8080/`. Map tiles, location search, and the Leaflet CDN also require
+internet access.
 
 The current method thresholds monthly median VH backscatter at −15.5 dB and sums classified
 pixel areas at an 80 m analysis scale. These are radar-derived forest-cover estimates, not a
@@ -85,6 +102,9 @@ node tests/satellite-ui.test.cjs
 node tests/image-effects.test.cjs
 ```
 
+These checks use mocked satellite responses; they do not validate live Earth Engine
+access or the scientific accuracy of the forest-cover estimates.
+
 ### Option 2: Python Built-in HTTP Server
 ```bash
 python3 -m http.server 8000
@@ -98,22 +118,78 @@ the embedded manifest is only a fallback for browsing existing imagery.
 
 ---
 
+## Using the App
+
+1. Open **Forests**, search for a location, and choose a search result.
+2. Click **Draw a region** (or press `S`), then drag a rectangle on the map. The
+   browser currently requests the twelve months of **2025** for each selection.
+3. Wait for the monthly radar images and measured statistics. Images can appear
+   before processing finishes; forest statistics stay pending until the full run succeeds.
+4. Use the timeline, playback controls, and **Compare baseline** to inspect changes.
+   Open **Display settings → Image view** to change the radar display. **Simple colors**
+   is available for the forest mission; hurricane imagery supports Original and Enhanced radar.
+5. Switch to **Hurricanes** for the existing Florida sequence or **Explore** for the global view.
+
+Keyboard shortcuts: `/` focuses search, `S` starts region selection, `Space` toggles
+playback, `←` / `→` step dates, `B` toggles baseline comparison, `I` toggles analytics,
+`F` toggles fullscreen, `?` opens help, and `Esc` cancels drawing or closes menus.
+
+Each analysis writes monthly PNGs, `metrics.json`, and `metrics.csv` to its own
+`public/data/<region>_<run-id>/` directory. Earlier runs remain on disk. Active job
+status is held in memory, so after restarting the server, draw the region again to
+start a new analysis. Existing output files are not automatically loaded as an active run.
+
+If analysis fails, check the error shown in the app and the server terminal. Verify
+Earth Engine authentication and the configured project using the same environment
+and operating system account as the server. Every month must have Sentinel-1 observations
+for the selected orbit; a missing month causes an explicit failure. A static file server
+cannot handle the analysis API.
+
+## Analysis API and Command Line
+
+`POST /api/analyze` accepts JSON such as:
+
+```json
+{"bbox": [-63.35, -9.85, -62.85, -9.35], "year": 2025, "region_name": "custom_roi"}
+```
+
+Coordinates are `[west, south, east, north]` in degrees. Rectangles must have increasing
+longitude and latitude and cannot cross the antimeridian. The API accepts years from
+2014 through the current year, subject to observations being available for every month.
+It returns HTTP `202` with a generated `region` identifier. Poll
+`GET /api/analyze/status?region_name=<region>` for `running`, `complete`, or `error`;
+completed responses include `metrics_ready: true`, measurements, and image URLs.
+
+You can also run the pipeline directly for another year or output directory:
+
+```bash
+.venv/bin/python pipeline.py --bbox -63.35 -9.85 -62.85 -9.35 --year 2025 --name example --outdir public/data/example
+```
+
+---
+
 ## 📁 Project Structure
 
 ```
 nasa_space_challenge/
 ├── index.html                  # Root forwarder
 ├── server.py                   # Lightweight local web server
+├── pipeline.py                 # Earth Engine monthly radar and forest-cover analysis
+├── requirements.txt            # Python pipeline dependencies
+├── tests/                      # Python and Node.js regression checks
 ├── README.md                   # Project documentation
 ├── test.ipynb                  # Google Earth Engine data pipeline script
 └── public/
     ├── index.html              # Main web application
-    ├── style.css               # NASA/tactical dark glassmorphism styling
+    ├── style.css               # Responsive map workspace styling
     ├── app.js                  # Map engine, playback, and interactivity
+    ├── image-effects.js        # Local radar display processing
+    ├── assets/                 # Shared frontend assets
     └── data/
         ├── manifest.json       # Metadata & geographic bounding boxes
         ├── amazon/             # Sentinel-1 SAR frames (2024–2026)
-        └── florida/            # Sentinel-1 SAR hurricane frames (Sept–Oct 2024)
+        ├── florida/            # Sentinel-1 SAR hurricane frames (Sept–Oct 2024)
+        └── <region>_<run-id>/  # Generated monthly PNGs and JSON/CSV measurements
 ```
 
 ---
