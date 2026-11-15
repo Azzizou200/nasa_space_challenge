@@ -1,0 +1,109 @@
+{
+  "success": true,
+  "region": "forest_example_amazon_1794716863201929267",
+  "source": "NISAR_L2_GCOV",
+  "mission": "forest",
+  "collection": "NISAR_L2_GCOV_PROVISIONAL_V1",
+  "bbox": [
+    -63.15,
+    -9.65,
+    -63.03,
+    -9.53
+  ],
+  "start_date": "2026-09-01",
+  "end_date": "2026-10-31",
+  "metrics_ready": true,
+  "hv_threshold_db": -13,
+  "baseline_date": "2026-09-05",
+  "acquisition_count": 4,
+  "total_region_area_km2": 175.296,
+  "baseline_forest_km2": 84.928,
+  "final_forest_km2": 71.5072,
+  "total_forest_lost_km2": 13.4208,
+  "net_loss_percentage": 15.8,
+  "peak_loss_km2": 12.1728,
+  "peak_loss_date": "2026-09-17",
+  "track": "161",
+  "direction": "A",
+  "frame": "173",
+  "mode": "2005",
+  "footprint_coverage": 1.0,
+  "method": {
+    "name": "Exploratory HV gamma0 vegetation threshold",
+    "hv_threshold_db": -13,
+    "backscatter": "gamma0",
+    "multilook": 4,
+    "pixel_area_m2": 6400.0,
+    "interpretation": "Exploratory vegetation-cover proxy; needs regional calibration. Not an official NISAR forest-disturbance product. Acquisition intervals are irregular."
+  },
+  "acquisition_series": [
+    {
+      "date": "2026-09-05",
+      "forest_area_km2": 84.928,
+      "loss_km2": 0,
+      "net_change_km2": -0.0,
+      "image": "forest_2026-09-05.png",
+      "bounds": [
+        [
+          -9.650340186182197,
+          -63.15021300557381
+        ],
+        [
+          -9.52989207309431,
+          -63.02952066095558
+        ]
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "forest_area_km2": 72.7552,
+      "loss_km2": 12.1728,
+      "net_change_km2": -12.1728,
+      "image": "forest_2026-09-17.png",
+      "bounds": [
+        [
+          -9.650340186182197,
+          -63.15021300557381
+        ],
+        [
+          -9.52989207309431,
+          -63.02952066095558
+        ]
+      ]
+    },
+    {
+      "date": "2026-09-29",
+      "forest_area_km2": 72.3456,
+      "loss_km2": 0.4096,
+      "net_change_km2": -0.4096,
+      "image": "forest_2026-09-29.png",
+      "bounds": [
+        [
+          -9.650340186182197,
+          -63.15021300557381
+        ],
+        [
+          -9.52989207309431,
+          -63.02952066095558
+        ]
+      ]
+    },
+    {
+      "date": "2026-10-11",
+      "forest_area_km2": 71.5072,
+      "loss_km2": 0.8384,
+      "net_change_km2": -0.8384,
+      "image": "forest_2026-10-11.png",
+      "bounds": [
+        [
+          -9.650340186182197,
+          -63.15021300557381
+        ],
+        [
+          -9.52989207309431,
+          -63.02952066095558
+        ]
+      ]
+    }
+  ]
+}

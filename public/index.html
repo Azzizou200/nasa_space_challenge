@@ -26,7 +26,7 @@
     <nav class="mission-selector" aria-label="Observation missions">
       <button class="mission-btn" data-mission="global" aria-pressed="false"><svg  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg><span>Explore</span></button>
       <button class="mission-btn active" data-mission="deforestation" aria-pressed="true"><svg  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4c0 9-3 15-9 15a6 6 0 0 1-6-6C5 7 11 4 20 4Z"/><path d="m4 21 11-11"/></svg><span>Forests</span></button>
-      <button class="mission-btn" data-mission="florida" aria-pressed="false"><svg  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 8A8 8 0 0 0 5 6c-3 5-1 12 4 13 4 1 8-2 8-6a5 5 0 0 0-9-3c-2 3 1 7 4 5"/><path d="m12 3 3-1M9 21l3-1"/></svg><span>Hurricanes</span></button>
+      <button class="mission-btn" data-mission="flood" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8c2-3 4 3 6 0s4 3 6 0 4 3 8 0M2 13c2-3 4 3 6 0s4 3 6 0 4 3 8 0M2 18c2-3 4 3 6 0s4 3 6 0 4 3 8 0"/></svg><span>Floods</span></button>
     </nav>
     <div class="top-tools">
       <div class="search-container">
@@ -64,8 +64,86 @@
 
     <div class="sidebar-content">
       <section id="region-section" class="info-card" aria-label="Region selection">
-        <p class="region-label">Search for a location, then draw the area you want to analyze.</p>
+        <div id="forest-source-controls" class="forest-source-controls">
+          <label for="forest-source-select">Forest data source</label>
+          <select id="forest-source-select" class="image-view-select" aria-describedby="forest-source-note">
+            <option value="sentinel1">Sentinel-1 · C-band</option>
+            <option value="nisar">NISAR · L-band</option>
+          </select>
+          <p id="forest-source-note" class="image-view-note">Monthly Sentinel-1 observations for 2025. Requires Google Earth Engine access.</p>
+          <div class="forest-example-controls">
+            <label for="forest-example-select">Ready-made examples</label>
+            <select id="forest-example-select" class="image-view-select" aria-describedby="forest-example-note">
+              <option value="">Choose a saved example</option>
+            </select>
+            <p id="forest-example-note" class="image-view-note" role="status">Open an example to view saved radar images and measurements.</p>
+          </div>
+        </div>
+        <p id="region-instructions" class="region-label">Search for a location, then draw the area you want to analyze.</p>
         <button id="draw-region-btn" class="draw-region-btn"><svg  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3 3"/><path d="M1 4h6M4 1v6M17 20h6M20 17v6"/></svg><span>Draw a region</span></button>
+        <form id="forest-analysis-form" class="forest-analysis-form">
+          <div id="forest-nisar-options" class="forest-nisar-options" hidden>
+            <div class="date-fields">
+              <div class="date-field"><label for="forest-start-date">Start date</label><input id="forest-start-date" type="date" aria-describedby="forest-analysis-error"></div>
+              <div class="date-field"><label for="forest-end-date">End date</label><input id="forest-end-date" type="date" aria-describedby="forest-analysis-error"></div>
+            </div>
+            <div class="date-field"><label for="forest-hv-threshold">HV threshold (dB)</label><input id="forest-hv-threshold" type="number" min="-40" max="0" step="0.5" value="-13" aria-describedby="forest-threshold-note forest-analysis-error"></div>
+            <p id="forest-threshold-note" class="image-view-note">Exploratory vegetation estimate. −13 dB is a starting value that needs regional calibration, not a validated NISAR forest threshold.</p>
+          </div>
+          <p id="forest-analysis-error" class="field-error" role="alert" hidden></p>
+          <button type="submit" class="draw-region-btn">Analyze forest</button>
+          <button id="forest-cancel-btn" type="button" class="draw-region-btn" hidden>Cancel analysis</button>
+        </form>
+        <div id="flood-reference-controls" class="flood-reference-controls" hidden>
+          <label for="flood-reference-select">Flood reference locations</label>
+          <select id="flood-reference-select" class="image-view-select" aria-describedby="flood-reference-note">
+            <option value="">Choose a reference location</option>
+          </select>
+          <p id="flood-reference-note" class="image-view-note">Choose a location here or use a numbered map marker. Set your dates, then analyze.</p>
+          <div id="flood-reference-details" hidden>
+            <p id="flood-reference-context" class="image-view-note"></p>
+            <a id="flood-reference-source" class="flood-reference-source" target="_blank" rel="noopener noreferrer">Read NASA flood history ↗</a>
+          </div>
+        </div>
+        <form id="flood-date-form" class="flood-date-form" hidden>
+          <div class="date-fields">
+            <div class="date-field">
+              <label for="flood-start-date">Start date</label>
+              <input id="flood-start-date" name="start_date" type="date" required aria-describedby="flood-date-error">
+            </div>
+            <div class="date-field">
+              <label for="flood-end-date">End date</label>
+              <input id="flood-end-date" name="end_date" type="date" required aria-describedby="flood-date-error">
+            </div>
+          </div>
+          <p id="flood-date-error" class="field-error" role="alert" hidden></p>
+          <button type="submit" id="flood-analyze-btn" class="draw-region-btn flood-analyze-btn">Analyze floods</button>
+          <button type="button" id="flood-cancel-btn" class="draw-region-btn" hidden>Cancel analysis</button>
+          <p id="flood-selection-status" class="image-view-note" role="status">Draw a region, then choose the dates to analyze.</p>
+          <p class="image-view-note">The first available observation is the baseline. At least two NISAR dates are needed.</p>
+          <p class="image-view-note">NISAR launched in July 2025. A 2024–2026 range uses only available observations after launch.</p>
+        </form>
+      </section>
+
+      <section id="flood-kpi-section" class="info-card" aria-label="Flood tracking statistics" hidden>
+        <div class="info-card-header"><h3 style="font:inherit">New open water</h3><span id="flood-area-badge" class="tabular-nums">—</span></div>
+        <p id="flood-metrics-status" class="metrics-status" role="status">Awaiting NISAR observations</p>
+        <div class="kpi-grid">
+          <div class="kpi-card"><span class="kpi-label">Baseline water</span><span id="flood-baseline" class="kpi-val">—</span><span id="flood-baseline-date" class="kpi-sub">First acquisition</span></div>
+          <div class="kpi-card"><span class="kpi-label">Peak new water</span><span id="flood-peak" class="kpi-val accent-rose">—</span><span id="flood-peak-date" class="kpi-sub">Awaiting analysis</span></div>
+          <div class="kpi-card"><span class="kpi-label">Latest new water</span><span id="flood-latest" class="kpi-val">—</span><span id="flood-latest-date" class="kpi-sub">Awaiting analysis</span></div>
+          <div class="kpi-card"><span class="kpi-label">Observations</span><span id="flood-count" class="kpi-val">—</span><span id="flood-track" class="kpi-sub">Track pending</span></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-header"><span>New water by acquisition</span><span id="flood-chart-active" class="tabular-nums">km²</span></div>
+          <div id="flood-chart-bars" class="chart-bars-wrap" aria-label="New open-water area by acquisition"></div>
+        </div>
+        <p id="flood-coverage-note" class="image-view-note"></p>
+        <div id="flood-downloads" class="flood-downloads" hidden>
+          <a id="flood-csv-download" download>Download CSV</a>
+          <a id="flood-tiff-download" download>Flood GeoTIFF</a>
+          <a id="flood-duration-download" download>Duration GeoTIFF</a>
+        </div>
       </section>
 
       <section id="kpi-section" class="info-card" aria-label="Forest change statistics" hidden>
@@ -73,30 +151,32 @@
         <p id="metrics-status" class="metrics-status" role="status">Waiting for satellite measurements</p>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <span class="kpi-label">Baseline forest</span>
+            <span id="forest-baseline-label" class="kpi-label">Baseline forest</span>
             <span id="kpi-baseline" class="kpi-val">—</span>
             <span id="kpi-baseline-pct" class="kpi-sub">Awaiting analysis</span>
           </div>
           <div class="kpi-card">
-            <span class="kpi-label">Forest lost</span>
+            <span id="forest-loss-label" class="kpi-label">Forest lost</span>
             <span id="kpi-lost" class="kpi-val accent-rose">—</span>
             <span id="kpi-loss-pct" class="kpi-sub">Awaiting analysis</span>
           </div>
           <div class="kpi-card">
-            <span class="kpi-label">Peak monthly loss</span>
+            <span id="forest-peak-label" class="kpi-label">Peak monthly loss</span>
             <span id="kpi-speed" class="kpi-val">—</span>
             <span id="kpi-peak-month" class="kpi-sub">Awaiting analysis</span>
           </div>
           <div class="kpi-card">
-            <span class="kpi-label">Observation year</span>
+            <span id="forest-period-label" class="kpi-label">Observation year</span>
             <span id="kpi-year" class="kpi-val">2025</span>
             <span id="kpi-pass" class="kpi-sub">Orbit pending</span>
           </div>
         </div>
         <div class="chart-container">
-          <div class="chart-header"><span>Monthly forest loss</span><span id="chart-active-val" class="tabular-nums">Awaiting measurements</span></div>
+          <div class="chart-header"><span id="forest-chart-label">Monthly forest loss</span><span id="chart-active-val" class="tabular-nums">Awaiting measurements</span></div>
           <div id="chart-bars" class="chart-bars-wrap" aria-label="Monthly forest loss chart"></div>
         </div>
+        <p id="forest-coverage-note" class="image-view-note" hidden></p>
+        <div id="forest-downloads" class="flood-downloads" hidden><a id="forest-csv-download" download>Download CSV</a><a id="forest-tiff-download" download>Vegetation GeoTIFF</a></div>
       </section>
 
       <details class="info-card panel-details">
@@ -182,15 +262,16 @@
     <div class="telemetry-item"><span>Coordinates</span><span id="hud-coords" class="telemetry-val">—</span></div>
     <div class="telemetry-item telemetry-zoom"><span>Zoom</span><span id="hud-zoom" class="telemetry-val">3</span></div>
     <div class="telemetry-item telemetry-datum"><span class="telemetry-val">WGS84</span></div>
-    <span class="workspace-status">Sentinel-1 SAR</span>
+    <span id="workspace-sensor" class="workspace-status">Sentinel-1 SAR</span>
   </footer>
 
   <div id="about-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" inert>
     <div class="glass-panel modal-card">
       <div class="modal-header"><h2 id="modal-title">Your observation workspace</h2><button id="modal-close-btn" class="modal-close-btn" aria-label="Close help">&times;</button></div>
       <div class="help-content">
-        <p>AERO-WATCH uses Copernicus Sentinel-1 radar observations to explore forest change and coastal flooding.</p>
+        <p>AERO-WATCH uses Sentinel-1 radar for forest change and NISAR L-band observations for flood tracking.</p>
         <div><h3>Choose your region</h3><p>Search for a location, then use the drawing tool to select an area on the map. Imagery progress appears in the region panel.</p></div>
+        <div><h3>Track new open water</h3><p>In Floods, draw a region, enter start and end dates, and select Analyze floods. Red marks new open water relative to the first available observation. At least two NISAR acquisitions are required.</p></div>
         <div><h3>Explore changes over time</h3><p>Drag the timeline to change dates. Play the sequence, adjust playback speed, or compare the current date with its baseline.</p></div>
         <div><h3>Keyboard shortcuts</h3><dl class="shortcut-list"><dt>S</dt><dd>Draw a region</dd><dt>Space</dt><dd>Play or pause</dd><dt>← / →</dt><dd>Previous or next date</dd><dt>B</dt><dd>Compare with baseline</dd><dt>/</dt><dd>Search places</dd><dt>I</dt><dd>Show or hide analytics</dd><dt>F</dt><dd>Toggle fullscreen</dd><dt>?</dt><dd>Open this help</dd><dt>Esc</dt><dd>Close a menu or cancel drawing</dd></dl></div>
       </div>
@@ -199,6 +280,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="image-effects.js"></script>
+  <script src="forest-examples.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

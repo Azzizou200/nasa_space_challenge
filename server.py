@@ -16,11 +16,147 @@ import sys
 import threading
 import time
 from urllib.parse import parse_qs, urlparse
+from flood_jobs import AnalysisCancelled, run_flood_process
 
 PORT = 8000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 ANALYSIS_JOBS = {}
 ANALYSIS_JOBS_LOCK = threading.Lock()
+
+
+def cancel_flood_analysis(client_id, region_name=None):
+    if not isinstance(client_id, str) or not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", client_id):
+        raise ValueError("A valid browser analysis identifier is required.")
+    cancelled = []
+    with ANALYSIS_JOBS_LOCK:
+        for region, job in ANALYSIS_JOBS.items():
+            if (job.get("client_id") == client_id and job["status"] == "running"
+                    and (region_name is None or region_name == region)):
+                job["cancel_event"].set()
+                job.update(status="cancelled", error=None, metrics=None,
+                           progress=dict(stage="cancelled", message="NISAR analysis cancelled."))
+                cancelled.append(region)
+    return {"status": "cancelled", "regions": cancelled}
+
+
+def start_flood_analysis(bbox, start_date, end_date, requested_region_name, client_id=None):
+    return start_nisar_analysis(bbox, start_date, end_date, requested_region_name, client_id)
+
+
+def start_nisar_forest_analysis(bbox, start_date, end_date, requested_region_name,
+                                client_id=None, hv_threshold_db=-13):
+    if (isinstance(hv_threshold_db, bool) or not isinstance(hv_threshold_db, (int, float))
+            or not math.isfinite(hv_threshold_db) or not -40 <= hv_threshold_db <= 0):
+        raise ValueError("Choose an HV threshold between −40 and 0 dB.")
+    return start_nisar_analysis(bbox, start_date, end_date, requested_region_name,
+                                client_id, mission="forest", hv_threshold_db=hv_threshold_db)
+
+
+def start_nisar_analysis(bbox, start_date, end_date, requested_region_name, client_id=None,
+                         mission="flood", hv_threshold_db=None):
+    # Validation stays lightweight so POST returns before the science imports.
+    if (not isinstance(bbox, list) or len(bbox) != 4
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in bbox)
+            or not (-180 <= bbox[0] < bbox[2] <= 180 and -85 <= bbox[1] < bbox[3] <= 85)):
+        raise ValueError("Draw a valid region between 85°S and 85°N without crossing the date line.")
+    try:
+        start, end = datetime.date.fromisoformat(start_date), datetime.date.fromisoformat(end_date)
+    except (TypeError, ValueError):
+        raise ValueError("Enter valid start and end dates as YYYY-MM-DD.") from None
+    if start >= end:
+        raise ValueError("End date must be after start date.")
+    if end.isoformat() < "2025-07-30":
+        raise ValueError("NISAR launched on July 30, 2025. Choose a period after launch; there are no 2024 NISAR observations.")
+    if end > datetime.datetime.now(datetime.timezone.utc).date():
+        raise ValueError("End date cannot be in the future.")
+    slug = re.sub(r"[^a-z0-9_]", "_", str(requested_region_name).lower())[:80] or "custom_roi"
+    region_name = f"{mission}_{slug}_{time.time_ns()}"
+    if client_id is not None:
+        cancel_flood_analysis(client_id)
+    response = dict(success=True, mission=mission, source="NISAR_L2_GCOV", region=region_name,
+                    bbox=bbox, start_date=start_date, end_date=end_date,
+                    status="running", metrics_ready=False, acquisition_series=[])
+    if mission == "forest":
+        response["hv_threshold_db"] = hv_threshold_db
+    with ANALYSIS_JOBS_LOCK:
+        ANALYSIS_JOBS[region_name] = dict(status="running", error=None, started_at=time.time(),
+                                         metrics=None, bbox=bbox, mission=mission,
+                                         start_date=start_date, end_date=end_date,
+                                         client_id=client_id, cancel_event=threading.Event(),
+                                         updated_at=time.time(),
+                                         progress=dict(stage="starting", message="Starting NISAR region analysis…"))
+    target = background_nisar_forest_pipeline if mission == "forest" else background_nisar_flood_pipeline
+    args = (bbox, start_date, end_date, region_name)
+    if mission == "forest":
+        args += (hv_threshold_db,)
+    threading.Thread(target=target, args=args, daemon=True).start()
+    return response
+
+
+def background_nisar_forest_pipeline(bbox, start_date, end_date, region_name, hv_threshold_db):
+    background_nisar_flood_pipeline(bbox, start_date, end_date, region_name,
+                                    mission="forest", hv_threshold_db=hv_threshold_db)
+
+
+def background_nisar_flood_pipeline(bbox, start_date, end_date, region_name,
+                                     mission="flood", hv_threshold_db=None):
+    def progress(stage, message, **counts):
+        with ANALYSIS_JOBS_LOCK:
+            job = ANALYSIS_JOBS[region_name]
+            if job["status"] != "running":
+                return
+            job.update(progress=dict(stage=stage, message=message, **counts), updated_at=time.time())
+        print(f"[NISAR] {region_name}: {stage}: {message}", flush=True)
+    try:
+        out_dir = os.path.join(DIRECTORY, "public", "data", region_name)
+        kwargs = dict(
+            bbox=bbox, start_date=start_date, end_date=end_date, region_name=region_name,
+            output_dir=out_dir, cache_dir=os.path.join(DIRECTORY, ".cache", "nisar"))
+        if mission == "forest":
+            kwargs.update(analysis_kind="forest", hv_threshold_db=hv_threshold_db)
+        metrics = run_flood_process(kwargs, progress, ANALYSIS_JOBS[region_name]["cancel_event"])
+        if (metrics.get("region") != region_name or metrics.get("bbox") != bbox
+                or metrics.get("source") != "NISAR_L2_GCOV"
+                or metrics.get("start_date") != start_date or metrics.get("end_date") != end_date
+                or len(metrics.get("acquisition_series", [])) < 2):
+            raise ValueError(f"NISAR returned incomplete or mismatched {mission} measurements.")
+        if mission == "forest" and (metrics.get("mission") != "forest"
+                or metrics.get("method", {}).get("hv_threshold_db") != hv_threshold_db):
+            raise ValueError("NISAR forest measurements do not match the selected method.")
+        dates = []
+        for row in metrics["acquisition_series"]:
+            date = datetime.date.fromisoformat(row["date"]).isoformat()
+            if not start_date <= date <= end_date:
+                raise ValueError("NISAR returned an acquisition outside the requested dates.")
+            dates.append(date)
+            filename = row["image"]
+            if os.path.basename(filename) != filename or not filename.endswith(".png"):
+                raise ValueError("NISAR returned an invalid image filename.")
+            if not os.path.isfile(os.path.join(out_dir, filename)):
+                raise ValueError(f"A NISAR {mission} map could not be exported.")
+            if mission == "forest" and any(not isinstance(row.get(key), (int, float))
+                    or not math.isfinite(row[key]) for key in ("forest_area_km2", "loss_km2")):
+                raise ValueError("NISAR returned invalid forest measurements.")
+            row["image_url"] = f"/public/data/{region_name}/{filename}"
+        if dates != sorted(set(dates)):
+            raise ValueError("NISAR acquisition dates must be unique and chronological.")
+        metrics.update(status="complete", metrics_ready=True)
+        exports = (("csv", "metrics.csv"), ("geotiff", "forest.tif")) if mission == "forest" else (
+            ("csv", "metrics.csv"), ("geotiff", "flood.tif"), ("duration", "flood_duration.tif"))
+        metrics["downloads"] = {key: f"/public/data/{region_name}/{name}" for key, name in exports}
+        with ANALYSIS_JOBS_LOCK:
+            job = ANALYSIS_JOBS[region_name]
+            if job["status"] == "running":
+                job.update(status="complete", metrics=metrics, error=None)
+    except Exception as exc:
+        message = ("NISAR dependencies are missing. Install requirements.txt and restart server.py."
+                   if isinstance(exc, ImportError) else str(exc))
+        print(f"[NISAR] Analysis failed for {region_name}: {message}")
+        with ANALYSIS_JOBS_LOCK:
+            job = ANALYSIS_JOBS[region_name]
+            if job["status"] == "running":
+                job.update(status="cancelled" if isinstance(exc, AnalysisCancelled) else "error",
+                           error=None if isinstance(exc, AnalysisCancelled) else message, metrics=None)
 
 
 def calculate_geodetic_area_km2(bbox):
@@ -151,7 +287,10 @@ def analysis_status(region_name):
     return {
         "region": region_name, "status": job["status"], "error": job["error"],
         "metrics_ready": metrics is not None, "metrics": metrics,
-        "images": images
+        "images": images, "progress": job.get("progress"),
+        "elapsed_seconds": round(time.time() - job["started_at"]),
+        "stage_elapsed_seconds": round(time.time() - job.get("updated_at", job["started_at"])),
+        "bbox": job.get("bbox"), "start_date": job.get("start_date"), "end_date": job.get("end_date")
     }
 
 
@@ -191,6 +330,60 @@ class ThreadingObservatoryHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        if self.path == '/api/forest/nisar/analyze':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                if not 0 < length <= 16384:
+                    raise ValueError("Invalid analysis request size.")
+                data = json.loads(self.rfile.read(length).decode('utf-8'))
+                result = start_nisar_forest_analysis(data.get('bbox'), data.get('start_date'),
+                    data.get('end_date'), data.get('region_name', 'custom_roi'),
+                    data.get('client_id'), data.get('hv_threshold_db', -13))
+                payload = json.dumps(result).encode('utf-8')
+                self.send_response(202)
+            except (ValueError, TypeError, AttributeError) as exc:
+                payload = json.dumps({"error": str(exc)}).encode('utf-8')
+                self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if self.path in ('/api/flood/cancel', '/api/nisar/cancel'):
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                if not 0 < length <= 16384:
+                    raise ValueError("Invalid cancellation request size.")
+                data = json.loads(self.rfile.read(length).decode('utf-8'))
+                result = cancel_flood_analysis(data.get('client_id'), data.get('region_name'))
+                payload = json.dumps(result).encode('utf-8')
+                self.send_response(200)
+            except (ValueError, TypeError, AttributeError) as exc:
+                payload = json.dumps({"error": str(exc)}).encode('utf-8')
+                self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if self.path == '/api/flood/analyze':
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                if not 0 < length <= 16384:
+                    raise ValueError("Invalid analysis request size.")
+                data = json.loads(self.rfile.read(length).decode('utf-8'))
+                result = start_flood_analysis(data.get('bbox'), data.get('start_date'),
+                                              data.get('end_date'), data.get('region_name', 'custom_roi'), data.get('client_id'))
+                payload = json.dumps(result).encode('utf-8')
+                self.send_response(202)
+            except (ValueError, TypeError, AttributeError) as exc:
+                payload = json.dumps({"error": str(exc)}).encode('utf-8')
+                self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         if self.path == '/api/analyze':
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)

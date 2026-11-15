@@ -1,0 +1,70 @@
+{
+  "region": "flood_limpopo_verification_1794706474445291584",
+  "source": "NISAR_L2_GCOV",
+  "collection": "NISAR_L2_GCOV_PROVISIONAL_V1",
+  "mission": "flood",
+  "bbox": [
+    32.95,
+    -24.56,
+    33.01,
+    -24.5
+  ],
+  "start_date": "2026-06-20",
+  "end_date": "2026-07-10",
+  "metrics_ready": true,
+  "baseline_date": "2026-06-25",
+  "acquisition_count": 2,
+  "analyzed_land_area_km2": 40.3712,
+  "baseline_water_km2": 0.0016,
+  "peak_flood_km2": 0.0,
+  "peak_flood_date": "2026-06-25",
+  "latest_flood_km2": 0.0,
+  "affected_area_km2": 0.0,
+  "track": "165",
+  "direction": "D",
+  "frame": "101",
+  "mode": "4005",
+  "footprint_coverage": 1.0,
+  "method": {
+    "hh_threshold_db": -15,
+    "hv_threshold_db": -24,
+    "multilook": 4,
+    "min_blob_pixels": 10,
+    "pixel_area_m2": 1600.0,
+    "interpretation": "New open water relative to the first acquisition; not independently validated. Flooded vegetation is not mapped."
+  },
+  "acquisition_series": [
+    {
+      "date": "2026-06-25",
+      "water_area_km2": 0.0016,
+      "flood_area_km2": 0.0,
+      "image": "flood_2026-06-25.png",
+      "bounds": [
+        [
+          -24.559762565127443,
+          32.94993392740024
+        ],
+        [
+          -24.499943746718397,
+          33.010141850157765
+        ]
+      ]
+    },
+    {
+      "date": "2026-07-07",
+      "water_area_km2": 0.0016,
+      "flood_area_km2": 0.0,
+      "image": "flood_2026-07-07.png",
+      "bounds": [
+        [
+          -24.559762565127443,
+          32.94993392740024
+        ],
+        [
+          -24.499943746718397,
+          33.010141850157765
+        ]
+      ]
+    }
+  ]
+}

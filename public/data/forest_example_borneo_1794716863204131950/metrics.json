@@ -1,0 +1,126 @@
+{
+  "success": true,
+  "region": "forest_example_borneo_1794716863204131950",
+  "source": "NISAR_L2_GCOV",
+  "mission": "forest",
+  "collection": "NISAR_L2_GCOV_PROVISIONAL_V1",
+  "bbox": [
+    114.2,
+    -1.1,
+    114.32,
+    -0.98
+  ],
+  "start_date": "2026-09-01",
+  "end_date": "2026-10-31",
+  "metrics_ready": true,
+  "hv_threshold_db": -13,
+  "baseline_date": "2026-09-02",
+  "acquisition_count": 5,
+  "total_region_area_km2": 177.4208,
+  "baseline_forest_km2": 147.456,
+  "final_forest_km2": 149.3056,
+  "total_forest_lost_km2": -1.8496,
+  "net_loss_percentage": -1.25,
+  "peak_loss_km2": 3.6032,
+  "peak_loss_date": "2026-10-08",
+  "track": "126",
+  "direction": "A",
+  "frame": "001",
+  "mode": "2005",
+  "footprint_coverage": 1.0,
+  "method": {
+    "name": "Exploratory HV gamma0 vegetation threshold",
+    "hv_threshold_db": -13,
+    "backscatter": "gamma0",
+    "multilook": 4,
+    "pixel_area_m2": 6400.0,
+    "interpretation": "Exploratory vegetation-cover proxy; needs regional calibration. Not an official NISAR forest-disturbance product. Acquisition intervals are irregular."
+  },
+  "acquisition_series": [
+    {
+      "date": "2026-09-02",
+      "forest_area_km2": 147.456,
+      "loss_km2": 0,
+      "net_change_km2": -0.0,
+      "image": "forest_2026-09-02.png",
+      "bounds": [
+        [
+          -1.100062354482156,
+          114.19986959163442
+        ],
+        [
+          -0.9797938797240066,
+          114.32015790115138
+        ]
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "forest_area_km2": 146.5024,
+      "loss_km2": 0.9536,
+      "net_change_km2": -0.9536,
+      "image": "forest_2026-09-14.png",
+      "bounds": [
+        [
+          -1.100062354482156,
+          114.19986959163442
+        ],
+        [
+          -0.9797938797240066,
+          114.32015790115138
+        ]
+      ]
+    },
+    {
+      "date": "2026-09-26",
+      "forest_area_km2": 150.3296,
+      "loss_km2": 0,
+      "net_change_km2": 3.8272,
+      "image": "forest_2026-09-26.png",
+      "bounds": [
+        [
+          -1.100062354482156,
+          114.19986959163442
+        ],
+        [
+          -0.9797938797240066,
+          114.32015790115138
+        ]
+      ]
+    },
+    {
+      "date": "2026-10-08",
+      "forest_area_km2": 146.7264,
+      "loss_km2": 3.6032,
+      "net_change_km2": -3.6032,
+      "image": "forest_2026-10-08.png",
+      "bounds": [
+        [
+          -1.100062354482156,
+          114.19986959163442
+        ],
+        [
+          -0.9797938797240066,
+          114.32015790115138
+        ]
+      ]
+    },
+    {
+      "date": "2026-10-20",
+      "forest_area_km2": 149.3056,
+      "loss_km2": 0,
+      "net_change_km2": 2.5792,
+      "image": "forest_2026-10-20.png",
+      "bounds": [
+        [
+          -1.100062354482156,
+          114.19986959163442
+        ],
+        [
+          -0.9797938797240066,
+          114.32015790115138
+        ]
+      ]
+    }
+  ]
+}

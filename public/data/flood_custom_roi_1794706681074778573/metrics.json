@@ -1,0 +1,86 @@
+{
+  "region": "flood_custom_roi_1794706681074778573",
+  "source": "NISAR_L2_GCOV",
+  "collection": "NISAR_L2_GCOV_PROVISIONAL_V1",
+  "mission": "flood",
+  "bbox": [
+    68.69,
+    27.54,
+    69.03,
+    27.88
+  ],
+  "start_date": "2025-08-17",
+  "end_date": "2026-11-15",
+  "metrics_ready": true,
+  "baseline_date": "2026-06-25",
+  "acquisition_count": 3,
+  "analyzed_land_area_km2": 1239.104,
+  "baseline_water_km2": 60.2656,
+  "peak_flood_km2": 74.3248,
+  "peak_flood_date": "2026-08-12",
+  "latest_flood_km2": 74.3248,
+  "affected_area_km2": 77.1952,
+  "track": "164",
+  "direction": "D",
+  "frame": "075",
+  "mode": "4005",
+  "footprint_coverage": 0.9965913268993938,
+  "method": {
+    "hh_threshold_db": -15,
+    "hv_threshold_db": -24,
+    "multilook": 4,
+    "min_blob_pixels": 10,
+    "pixel_area_m2": 1600.0,
+    "interpretation": "New open water relative to the first acquisition; not independently validated. Flooded vegetation is not mapped."
+  },
+  "acquisition_series": [
+    {
+      "date": "2026-06-25",
+      "water_area_km2": 60.2656,
+      "flood_area_km2": 0.0,
+      "image": "flood_2026-06-25.png",
+      "bounds": [
+        [
+          27.539914865438988,
+          68.68902227862522
+        ],
+        [
+          27.88036580401911,
+          69.03003588584365
+        ]
+      ]
+    },
+    {
+      "date": "2026-07-19",
+      "water_area_km2": 67.6272,
+      "flood_area_km2": 8.8176,
+      "image": "flood_2026-07-19.png",
+      "bounds": [
+        [
+          27.539914865438988,
+          68.68902227862522
+        ],
+        [
+          27.88036580401911,
+          69.03003588584365
+        ]
+      ]
+    },
+    {
+      "date": "2026-08-12",
+      "water_area_km2": 147.056,
+      "flood_area_km2": 74.3248,
+      "image": "flood_2026-08-12.png",
+      "bounds": [
+        [
+          27.539914865438988,
+          68.68902227862522
+        ],
+        [
+          27.88036580401911,
+          69.03003588584365
+        ]
+      ]
+    }
+  ]
+}

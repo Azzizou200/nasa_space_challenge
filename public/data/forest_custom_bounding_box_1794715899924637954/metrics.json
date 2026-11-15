@@ -1,0 +1,75 @@
+{
+  "success": true,
+  "region": "forest_custom_bounding_box_1794715899924637954",
+  "source": "NISAR_L2_GCOV",
+  "mission": "forest",
+  "collection": "NISAR_L2_GCOV_V1",
+  "bbox": [
+    -8.6933,
+    9.2905,
+    -8.5532,
+    9.402
+  ],
+  "start_date": "2026-08-17",
+  "end_date": "2026-11-15",
+  "metrics_ready": true,
+  "hv_threshold_db": 0,
+  "baseline_date": "2026-10-24",
+  "acquisition_count": 2,
+  "total_region_area_km2": 185.536,
+  "baseline_forest_km2": 0.0,
+  "final_forest_km2": 0.0,
+  "total_forest_lost_km2": 0.0,
+  "net_loss_percentage": null,
+  "peak_loss_km2": 0,
+  "peak_loss_date": null,
+  "track": "001",
+  "direction": "A",
+  "frame": "006",
+  "mode": "2005",
+  "footprint_coverage": 0.9814132541210457,
+  "method": {
+    "name": "Exploratory HV gamma0 vegetation threshold",
+    "hv_threshold_db": 0,
+    "backscatter": "gamma0",
+    "multilook": 4,
+    "pixel_area_m2": 6400.0,
+    "interpretation": "Exploratory vegetation-cover proxy; needs regional calibration. Not an official NISAR forest-disturbance product. Acquisition intervals are irregular."
+  },
+  "acquisition_series": [
+    {
+      "date": "2026-10-24",
+      "forest_area_km2": 0.0,
+      "loss_km2": 0,
+      "net_change_km2": -0.0,
+      "image": "forest_2026-10-24.png",
+      "bounds": [
+        [
+          9.290547841704338,
+          -8.69351322267269
+        ],
+        [
+          9.402258867427001,
+          -8.553273925719354
+        ]
+      ]
+    },
+    {
+      "date": "2026-11-05",
+      "forest_area_km2": 0.0,
+      "loss_km2": 0,
+      "net_change_km2": -0.0,
+      "image": "forest_2026-11-05.png",
+      "bounds": [
+        [
+          9.290547841704338,
+          -8.69351322267269
+        ],
+        [
+          9.402258867427001,
+          -8.553273925719354
+        ]
+      ]
+    }
+  ]
+}
