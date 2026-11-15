@@ -1,106 +1,323 @@
-# AERO-WATCH // NASA Space Apps Earth Observation Platform
+# AERO-WATCH
 
-An interactive, high-performance world map application designed for monitoring Earth observation data, environmental dynamics, and disaster response using multi-temporal **Sentinel-1 Synthetic Aperture Radar (SAR)** imagery.
+An Earth observation workspace built for the NASA Space Apps Challenge. Explore a
+satellite map, select a region, and inspect changes over time using Sentinel-1
+C-band radar or NISAR L-band radar.
 
----
+The app includes forest observations, NISAR flood tracking, and six saved forest
+examples with real imagery and measured statistics. The frontend uses plain HTML,
+CSS, JavaScript, and Leaflet; the backend is Python. No frontend build or npm
+installation is required.
 
-## 🌍 Key Features
+## Features
 
-- **Full-Screen Interactive World Map**:
-  - Smooth pan, continuous zoom, and dynamic camera fly-to animations.
-  - Multi-basemap engine:
-    - 🛰️ High-Resolution Satellite (Esri World Imagery)
-    - 🌑 Tactical Dark Matter (CartoDB Dark)
-    - ☀️ Clean Positron Light (CartoDB Light)
-    - 🗺️ OpenStreetMap with detailed cartographic boundaries
-    - 🌌 NASA VIIRS Night Lights (Earth at Night)
-  - Real-time telemetry HUD displaying cursor Latitude, Longitude, and current zoom level.
+| Mode | Source | Results |
+| --- | --- | --- |
+| Forests · Sentinel-1 | Google Earth Engine `COPERNICUS/S1_GRD`, VV/VH | Monthly forest-cover estimates, baseline coverage, net change, and peak monthly loss |
+| Forests · NISAR | NASA Earthdata L2 GCOV, HH/HV | Exploratory vegetation-cover estimates on acquisition dates, net change, and peak interval loss |
+| Floods | NASA Earthdata L2 GCOV, HH/HV | Baseline water, peak/latest new open water, and acquisition-count duration |
+| Explore | Basemap imagery | Global browsing and location search |
 
-- **Featured Observatories & Datasets**:
-  - 🌲 **Global Deforestation Presentation & ROI Square Selector**:
-    - **Interactive Square Selector**: Click the Square tool (or press `[S]`) and drag anywhere on the globe to draw a custom bounding box `[min_lon, min_lat, max_lon, max_lat]`.
-    - **SAR Change Detection**: Calculates selection area (km²), radar-derived baseline forest cover, monthly forest-cover change (km²/month), and peak monthly loss using [pipeline.py](pipeline.py).
-    - **Forest data source**: Choose Sentinel-1 C-band (monthly 2025 analysis) or NISAR L-band (actual acquisition dates with a selectable period and HV threshold).
-    - **Ready-made examples**: Open saved analyses for Amazon/Rondônia, Congo/Mai-Ndombe, or Borneo/Central Kalimantan with either forest source. Each includes measured statistics and timeline imagery.
-    - **Custom regions**: The map starts without a selected area or an automatic analysis. Choose an example, or search for a location and draw a bounding box to begin.
-    - **Monthly Forest Loss Chart**: Interactive bar chart displaying changes in estimated forest cover across the year.
-  - **NISAR Flood Detection & Tracking**: Draw any region, enter start and end dates,
-    and analyze a chronological NISAR L2 GCOV HH/HV stack. Track baseline water,
-    peak and latest new open water, and individual acquisition dates. Download
-    measured CSV data, a flood GeoTIFF, and a flood-duration GeoTIFF.
-  - 🌍 **Global View**: Interactive world overview without preset region markers.
+- Draw a rectangle or open a ready-made forest example.
+- Scrub observations, play a sequence, change playback speed, or compare with the baseline.
+- Switch between Esri satellite imagery, CARTO dark/light, OpenStreetMap, and NASA VIIRS night lights.
+- Search locations through OpenStreetMap Nominatim and inspect coordinates and zoom.
+- Adjust overlay opacity or use display-only forest image enhancements.
+- Download CSV and GeoTIFF outputs from completed NISAR analyses.
 
-- **Time Machine & Playback Engine**:
-  - Interactive timeline scrubber with timestamp markers.
-  - Play / Pause timelapse with adjustable playback speeds (0.5x, 1x, 2x).
-  - Keyboard shortcuts: `Spacebar` for play/pause, `Left` / `Right` arrow keys to step frames.
-  - **A/B Baseline Comparison**: Flip instantaneously between the current observation frame and the pre-storm/initial baseline to inspect environmental changes.
+Radar estimates are not validated land-cover classifications, confirmed logging
+detections, or independently validated flood assessments. Moisture, season,
+terrain, and vegetation type can affect the results.
 
-- **Spectral Interpretation & Radar Analysis**:
-  - **Optional public-friendly image effects** under Display settings → Image view: Original radar, Enhanced radar (speckle softening and contrast), and Simple colors (a plain-language color guide for forest radar composites).
-  - Effects run locally in the browser, apply across the timeline and comparison view, and never change the source images or measured statistics. Simplified colors group rendered radar patterns; they are not a land-cover classification. Original radar is always available.
-  - Opacity slider to cross-fade radar overlays with the underlying satellite basemap.
-  - Spectral false-color legend explaining radar polarizations:
-    - Red (VV): Bare soil, infrastructure, cleared plots
-    - Green (VH): Dense forest canopy and volume scattering
-    - Blue/Cyan: Vegetation disturbance / saturated surface moisture
-    - Dark/Black: Calm water / flood surge specular reflection
+## Quick start
 
-- **Global Geocoder**:
-  - Integrated OpenStreetMap Nominatim search to fly to cities and landmarks on Earth.
-
----
-
-## 🚀 Quick Start
-
-### Option 1: Development Server (Recommended)
-You need Python 3.10 or newer, a modern browser, and internet access. Sentinel-1 forest
-analysis needs a Google account with access to an Earth Engine enabled Google Cloud
-project. NISAR forest and flood analysis use NASA Earthdata credentials instead (see below). Node.js is only needed
-for the JavaScript regression tests. The frontend uses plain HTML, CSS, and JavaScript;
-there is no npm install or frontend build step.
-
-Create the project environment and install the Earth Engine pipeline dependencies once:
+You need Python 3.10 or newer, a modern browser, and internet access. Node.js is
+only needed for the JavaScript tests.
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python server.py
 ```
 
-Authenticate Earth Engine and set your project before starting the server. Replace
-`YOUR_PROJECT_ID` with your Google Cloud project ID:
+Open [http://localhost:8000/](http://localhost:8000/). The root page forwards to
+`public/index.html`. To use another port, run `.venv/bin/python server.py 8080`
+and open `http://localhost:8080/`.
+
+**Try saved data first:** open **Forests**, choose a **Forest data source**, then
+select a **Ready-made example**. Saved examples require no Earth Engine or
+Earthdata login. Map tiles, location search, and the Leaflet CDN still need
+internet access. New analyses require the appropriate authentication below.
+
+Restart `server.py` after changing Python code. Refresh the browser after changing
+frontend files.
+
+## Authentication for new analyses
+
+### Sentinel-1: Google Earth Engine
+
+Use a Google account with access to an Earth Engine enabled Cloud project. Replace
+`YOUR_PROJECT_ID` with your project ID:
 
 ```bash
 .venv/bin/earthengine authenticate
 .venv/bin/earthengine set_project YOUR_PROJECT_ID
-```
-
-Launch the included Python server:
-
-```bash
 .venv/bin/python server.py
 ```
 
-Then open your browser to:
-[http://localhost:8000/public/index.html](http://localhost:8000/public/index.html) (or simply [http://localhost:8000/](http://localhost:8000/))
+Authenticate under the same operating system account and Python environment as
+the server. Background jobs do not open interactive login prompts.
 
-Forest statistics now come from the same Sentinel-1 Earth Engine run as the radar images.
-The cards show “Awaiting analysis” until the run finishes; failures remain visible and never
-fall back to simulated coverage or seasonal loss rates. Restart `server.py` after updating.
-Earth Engine must already be authenticated and configured with an enabled project; background
-requests do not open an interactive login prompt.
+### NISAR forests and floods: NASA Earthdata
 
-To use a different port, run `.venv/bin/python server.py 8080` and open
-`http://localhost:8080/`. Map tiles, location search, and the Leaflet CDN also require
-internet access.
+NISAR uses Earthdata credentials separately from Earth Engine. Create a persistent
+login from a terminal:
 
-The current method thresholds monthly median VH backscatter at −15.5 dB and sums classified
-pixel areas at an 80 m analysis scale. These are radar-derived forest-cover estimates, not a
-validated land-cover classification or proof of illegal logging. Changes in moisture and other
-surface conditions can affect the estimates. Region area shown while waiting is calculated
-from the selection rectangle, not from a forest classification.
+```bash
+.venv/bin/python -c 'import earthaccess; earthaccess.login(strategy="interactive", persist=True)'
+.venv/bin/python server.py
+```
 
-Run the data-flow regression checks without making Earth Engine requests:
+Alternatively, provide `EARTHDATA_USERNAME` and `EARTHDATA_PASSWORD`, or
+`EARTHDATA_TOKEN`, in the server environment. The server uses environment
+credentials or `.netrc` without prompting. Keep credentials outside the repository.
+See the [earthaccess authentication guide](https://earthaccess.readthedocs.io/en/stable/user/howto/authenticate/).
+
+Earth Engine is not required for either NISAR mode.
+
+## Ready-made forest examples
+
+Each forest source offers three saved examples, for six analyses in total:
+
+| Example | Region | Sentinel-1 | NISAR |
+| --- | --- | --- | --- |
+| Amazon | Rondônia, Brazil | 12 monthly frames · 2025 | 4 acquisitions · September–October 2026 |
+| Congo | Mai-Ndombe, DR Congo | 12 monthly frames · 2025 | 4 acquisitions · September–October 2026 |
+| Borneo | Central Kalimantan, Indonesia | 12 monthly frames · 2025 | 5 acquisitions · September–October 2026 |
+
+Selecting an example moves the map, selects its rectangle, fills the settings, and
+loads saved images, statistics, and timeline frames. It does not start an analysis
+or poll an active job. The statistics are labeled **Saved example** and remain
+available after server restarts. **Analyze forest** reruns the selected settings.
+Changing the source or drawing a custom region clears the example selection.
+
+The sources use the same rectangles but different periods and methods; their
+estimates are not a direct measurement of change between sensors. The Congo
+rectangle includes river-dominated terrain and is retained as a mixed-surface
+example, rather than a forest-only reference.
+
+The catalog is [public/forest-examples.js](public/forest-examples.js). Retain its
+referenced run directories in `public/data/` with the application. To rebuild all
+six examples, authenticate the running server for both services, then run:
+
+```bash
+.venv/bin/python -B scripts/build_forest_examples.py
+```
+
+For another port, add `--base-url http://127.0.0.1:8080`. The builder uses fixed
+study rectangles, Sentinel-1 year 2025, and NISAR dates September 1–October 31, 2026
+with an HV threshold of −13 dB. It replaces the catalog only after all six analyses
+and required outputs complete. Previous run directories remain on disk.
+
+## Analyze a custom forest region
+
+1. Open **Forests** and choose **Sentinel-1 · C-band** or **NISAR · L-band**.
+2. Search for a location, then click **Draw a region** or press `S` and drag a rectangle.
+3. For Sentinel-1, drawing starts the twelve-month **2025** analysis. For NISAR,
+   drawing only selects the region: set the dates and HV threshold, then click
+   **Analyze forest**. NISAR initially uses the last 90 days.
+4. Wait for processing. Measurements stay pending until the run succeeds; errors
+   are displayed without simulated fallback statistics. Sentinel-1 images can
+   appear before all monthly measurements finish.
+5. Use the timeline, playback, charts, and **Compare baseline**. Completed NISAR
+   results include CSV and vegetation-mask GeoTIFF download links.
+
+Forest and flood selections are kept separately.
+
+### Sentinel-1 method
+
+[pipeline.py](pipeline.py) selects Sentinel-1 IW observations containing VV and VH,
+uses a consistent orbit direction, and forms monthly median composites. Forest
+area is estimated using **VH > −15.5 dB**, summed with pixel areas at an **80 m**
+analysis scale. Missing observations in any month cause an explicit failure.
+
+January is the baseline. Net loss is January cover minus December cover; negative
+loss means an estimated increase. The chart shows nonnegative decreases between
+consecutive monthly estimates. These are changes in thresholded radar coverage,
+not proof of forest clearing or illegal logging.
+
+The browser requests **2025**. The API and command-line pipeline accept other
+years, subject to observations being available for every month.
+
+### NISAR vegetation method
+
+[nisar_forest_pipeline.py](nisar_forest_pipeline.py) uses actual HH/HV acquisitions
+from a consistent track, direction, frame, mode, and polarization. It averages
+**4 × 4 pixels in linear power**, converts to dB, and applies
+**HV gamma0 > the selected threshold**. Only land with valid HH and HV on every
+acquisition contributes to the estimates.
+
+The adjustable **−13 dB** starting value needs regional calibration. This is an
+**exploratory vegetation-cover proxy**, not an official NISAR forest-disturbance
+product. The [NISAR Science Users' Handbook](https://nisar.jpl.nasa.gov/documents/26/NISAR_FINAL_9-6-19.pdf)
+discusses HV masks and a −13 dB threshold used in earlier ALOS experiments; that
+value is not calibrated for the gamma0 GCOV observations used here. The
+[ASF GCOV guide](https://nisar-docs.asf.alaska.edu/gcov/) describes GCOV normalization
+and covariance terms.
+
+The first acquisition is the baseline. The chart shows loss between acquisitions,
+whose intervals can differ; **these are not monthly rates**. Cards show baseline
+vegetation, net loss or gain, peak interval loss, and observation count. Reported
+area covers common valid land in the selected frame and may be smaller than the
+rectangle.
+
+## Track floods with NISAR
+
+1. Open **Floods** and draw a region, or choose a **Flood reference location** from
+   the selector or numbered markers: Limpopo/Chókwè, Jamuna/Sirajganj, Indus/Sukkur,
+   Mekong/Phnom Penh, or Mississippi/Vicksburg.
+2. Set **Start date** and **End date**, then click **Analyze floods**. Selecting a
+   reference area does not change the dates or start downloads.
+3. Follow progress, then scrub or play actual acquisition dates. Compare against
+   the first observation with **Compare baseline**.
+4. Download the measured CSV, flood GeoTIFF, or flood-duration GeoTIFF.
+
+Reference locations provide historical flood context and NASA source links. They
+do not guarantee observations or flooding during the chosen period.
+
+[flood_pipeline.py](flood_pipeline.py) averages 4 × 4 pixels in linear power before
+converting to dB, then detects open water using **HH < −15 dB and HV < −24 dB**.
+It masks ocean with Natural Earth land geometry, excludes baseline water and water
+present throughout the series, and removes patches smaller than ten connected
+pixels. Only common valid HH/HV land pixels are analyzed.
+
+The result estimates **new open water relative to the first acquisition**, which
+may already be flooded. It does not detect inundation beneath vegetation, and its
+thresholds need regional calibration. Red indicates new open water, blue indicates
+other detected water, and gray is HH radar backscatter. Duration exports count
+flooded acquisitions, **not elapsed days**.
+
+## NISAR dates and processing
+
+Both NISAR modes require at least two aligned acquisitions. Dates are inclusive;
+the end date must follow the start and cannot be in the future. Searches are
+limited to dates on or after the July 30, 2025 launch. There are no 2024 NISAR
+observations. A range spanning launch uses the actual first available acquisition
+as its baseline.
+
+Searches try validated, provisional, then beta GCOV collections without mixing
+releases. Frequency A must contain genuine HH and HV on matching grids; proxy
+polarizations are not synthesized. See the
+[NISAR data access guide](https://nisar-docs.asf.alaska.edu/earthaccess/).
+
+GCOV files can be several GB. The app streams HDF5 blocks needed for the region
+with a bounded cache and reuses complete files in `.cache/nisar/`. Natural Earth
+geometry is cached in `.cache/cartopy/`. Both caches are ignored by Git.
+
+NISAR jobs run in isolated, cancellable processes. A run with no progress for
+**120 seconds**, or more than **15 minutes** total, is stopped with an error.
+Starting another run of the same NISAR mode in one browser replaces the previous
+run. **Cancel analysis** stops the worker. Forest and flood workers use separate
+browser identifiers. Smaller regions and shorter date ranges reduce resource use.
+
+## Outputs and saved state
+
+| Analysis | Output directory | Files |
+| --- | --- | --- |
+| Sentinel-1 forest | `public/data/<region>_<run-id>/` | Monthly PNGs, `metrics.json`, `metrics.csv` |
+| NISAR forest | `public/data/forest_<region>_<run-id>/` | Acquisition PNGs, `metrics.json`, `metrics.csv`, `forest.tif` |
+| NISAR flood | `public/data/flood_<region>_<run-id>/` | Acquisition PNGs, `metrics.json`, `metrics.csv`, `flood.tif`, `flood_duration.tif` |
+
+NISAR display images are reprojected for Leaflet. Measurements and GeoTIFFs retain
+the source projected, multilooked grid. `forest.tif` has one band per date: 1 above
+the selected threshold, 0 below, and 255 outside common valid land. The forest CSV
+includes nonnegative interval `loss_km2` and signed `net_change_km2`, where positive
+means gain.
+
+Job status is held in memory. Restarting the server loses active job status but
+retains files. Arbitrary older runs are not automatically restored; saved forest
+examples load directly from their catalog and do not depend on job memory.
+
+## Display controls and shortcuts
+
+**Display settings → Image view** offers original radar, enhanced radar, and simple
+colors for forests. Processing runs locally in the browser and changes only the
+display. Simple colors group radar patterns; they are not land-cover classes.
+Flood colors are preserved. Original forest RGB uses VV−VH/VH/VV for Sentinel-1 and
+HH−HV/HV/HH for NISAR; the legend changes with the selected source.
+
+| Key | Action |
+| --- | --- |
+| `/` | Focus location search |
+| `S` | Draw a region |
+| `Space` | Play or pause |
+| `←` / `→` | Step observations |
+| `B` | Compare with baseline |
+| `I` | Toggle analytics |
+| `F` | Toggle fullscreen |
+| `?` | Open help |
+| `Esc` | Cancel drawing or close a menu |
+
+## API and command line
+
+Analysis requests return HTTP `202` with a unique `region`. Poll the status endpoint
+with that identifier.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/analyze` | Sentinel-1 forest analysis |
+| `POST` | `/api/forest/nisar/analyze` | NISAR vegetation analysis |
+| `POST` | `/api/flood/analyze` | NISAR flood analysis |
+| `GET` | `/api/analyze/status?region_name=<region>` | Progress, errors, images, and completed metrics |
+| `POST` | `/api/nisar/cancel` | Cancel a matching NISAR job for a browser identifier |
+| `POST` | `/api/flood/cancel` | Supported alias for NISAR cancellation |
+
+Coordinates are `[west, south, east, north]` in degrees. Rectangles must have
+increasing longitude and latitude and cannot cross the antimeridian. NISAR regions
+must lie between 85°S and 85°N. Request examples:
+
+**Sentinel-1 forest**
+
+```json
+{"bbox": [-63.15, -9.65, -63.03, -9.53], "year": 2025, "region_name": "custom_roi"}
+```
+
+The API accepts years from 2014 through the current year, subject to observations
+being available for all twelve months.
+
+**NISAR forest**
+
+```json
+{"bbox": [-63.15, -9.65, -63.03, -9.53], "start_date": "2026-09-01", "end_date": "2026-10-31", "hv_threshold_db": -13, "region_name": "custom_roi", "client_id": "forest_browser_session"}
+```
+
+**NISAR flood**
+
+```json
+{"bbox": [32.81, -24.70, 33.15, -24.36], "start_date": "2026-06-01", "end_date": "2026-07-31", "region_name": "custom_roi", "client_id": "flood_browser_session"}
+```
+
+**Cancel a NISAR job**
+
+```json
+{"client_id": "forest_browser_session", "region_name": "<region returned by the analysis request>"}
+```
+
+Status responses include `running`, `complete`, `error`, or `cancelled`, along with
+`metrics_ready`, `metrics`, and `images`. NISAR progress includes a stage, message,
+and elapsed time. Completed forest metrics contain `monthly_series` for Sentinel-1
+or `acquisition_series` for NISAR; flood metrics also use `acquisition_series`.
+NISAR completion includes download URLs. Errors do not publish fallback measurements.
+
+To run the Sentinel-1 pipeline directly for another year or output location:
+
+```bash
+.venv/bin/python pipeline.py --bbox -63.15 -9.65 -63.03 -9.53 --year 2025 --name example --outdir public/data/example
+```
+
+## Tests
+
+Run the Python and JavaScript checks without requesting new satellite observations:
 
 ```bash
 .venv/bin/python -B -m unittest discover -s tests -v
@@ -108,287 +325,63 @@ node tests/satellite-ui.test.cjs
 node tests/image-effects.test.cjs
 ```
 
-These checks use mocked satellite responses; they do not validate live Earth Engine
-access or the scientific accuracy of the forest-cover estimates.
+The tests cover API validation/publication, HDF5 processing and geospatial exports,
+worker cancellation/timeouts, source selection, stale responses, saved example
+files, playback, and display-only effects. They use mocked service responses, small
+local HDF5 fixtures, and committed example outputs. They do not independently
+validate scientific accuracy or live service authentication.
 
-### Option 2: Python Built-in HTTP Server
-```bash
-python3 -m http.server 8000
-```
-Navigate to `http://localhost:8000/public/index.html`.
-This serves the map interface only; new satellite analysis requires `server.py`.
+## Troubleshooting and server behavior
 
-### Option 3: Direct Browser File Access
-Direct file access does not support satellite analysis. Use the development server above
-for both forest and flood analysis. Archived images remain in `public/data/`.
+| Problem | Check |
+| --- | --- |
+| New analysis fails on a static host | Run `server.py`; `python3 -m http.server` can show the UI and saved examples but cannot process analysis requests. |
+| Sentinel-1 cannot initialize | Authenticate Earth Engine and configure an enabled project under the same account/environment as the server. |
+| Sentinel-1 reports a missing month | Choose another region or year with observations in all twelve months for the selected orbit. |
+| NISAR authentication fails | Configure Earthdata credentials or persistent login, then restart the server. |
+| No consistent NISAR stack | Widen the dates or select another region with at least two matching HH/HV acquisitions. |
+| A NISAR job stalls or exceeds limits | Draw a smaller region or shorten the dates. |
+| An analysis is no longer active | The server may have restarted; rerun the analysis or open a saved example. |
+| A saved example cannot load | Keep `public/forest-examples.js` and its referenced `public/data/` directories together. |
+| Basemap or search is unavailable | Check internet access and the external tile, CDN, or geocoding service. |
 
----
+The bundled server is intended for local development. It serves the project
+directory, binds to all interfaces, and has no application authentication. Direct
+`file://` browsing is not supported for analysis or loading saved example JSON.
 
-## Using the App
+## Project structure
 
-1. Open **Forests** and choose a **Forest data source**. Open a **Ready-made example** for immediate results, or search for a location and choose a search result to analyze a custom region.
-2. Click **Draw a region** (or press `S`), then drag a rectangle on the map. The
-   browser currently requests the twelve months of **2025** for each Sentinel-1 selection.
-   For NISAR, drawing only selects the region: set the dates and threshold, then click **Analyze forest**.
-3. Wait for the monthly radar images and measured statistics. Images can appear
-   before processing finishes; forest statistics stay pending until the full run succeeds.
-4. Use the timeline, playback controls, and **Compare baseline** to inspect changes.
-   Open **Display settings → Image view** to change the radar display. **Simple colors**
-   is available for the forest mission. Flood maps preserve their classification colors.
-5. Switch to **Floods** for NISAR flood tracking or **Explore** for the global view.
-
-Keyboard shortcuts: `/` focuses search, `S` starts region selection, `Space` toggles
-playback, `←` / `→` step dates, `B` toggles baseline comparison, `I` toggles analytics,
-`F` toggles fullscreen, `?` opens help, and `Esc` cancels drawing or closes menus.
-
-Each analysis writes monthly PNGs, `metrics.json`, and `metrics.csv` to its own
-`public/data/<region>_<run-id>/` directory. Earlier runs remain on disk. Active job
-status is held in memory, so after restarting the server, draw the region again to
-start a new analysis. Existing output files are not automatically loaded as an active run.
-The curated forest examples can be opened directly without an active background job.
-
-If analysis fails, check the error shown in the app and the server terminal. Verify
-Earth Engine authentication and the configured project using the same environment
-and operating system account as the server. Every month must have Sentinel-1 observations
-for the selected orbit; a missing month causes an explicit failure. A static file server
-cannot handle the analysis API.
-
-## Ready-Made Forest Examples
-
-Each forest source offers three saved examples in the **Ready-made examples** selector:
-
-| Example | Region | Sentinel-1 period | NISAR period |
-| --- | --- | --- | --- |
-| Amazon | Rondônia, Brazil | January–December 2025 | September–October 2026 |
-| Congo | Mai-Ndombe, DR Congo | January–December 2025 | September–October 2026 |
-| Borneo | Central Kalimantan, Indonesia | January–December 2025 | September–October 2026 |
-
-The examples use the same compact rectangles with both sources, so it is easy to
-inspect the two radar views. Their periods differ; they are not a simultaneous
-sensor comparison. Each Sentinel-1 example has twelve monthly observations. NISAR
-examples use real matching acquisition dates and the exploratory −13 dB HV threshold.
-Both sources retain their method limitations.
-
-Choosing an example moves the map, selects its rectangle, fills the appropriate
-settings, and loads its saved images and measured statistics. It does not submit a
-new analysis or require satellite-service login. **Analyze forest** reruns the
-selected settings through the live pipeline. Choosing a different source or drawing
-a custom region clears the example selection. Examples remain available after server
-restarts, and their status is labeled **Saved example**.
-
-`public/forest-examples.js` lists the six snapshots and their run directories in
-`public/data/`. To regenerate them with current pipeline code, authenticate the server
-for both Earth Engine and Earthdata, start `server.py`, then run:
-
-```bash
-.venv/bin/python -B scripts/build_forest_examples.py
-```
-
-Use `--base-url http://127.0.0.1:8011` for a different server port. The builder checks
-that all six analyses, image files, and NISAR masks completed before replacing the
-catalog. Previous outputs are retained.
-
-## NISAR Forest Observations
-
-In **Forests → Forest data source**, choose **NISAR · L-band**. Draw a region, select
-start and end dates, and click **Analyze forest**. Date defaults cover the last 90 days.
-The source selector does not start downloads. Sentinel-1 remains available from the
-same selector; switching sources clears the prior displayed results. Forest and flood
-selections and workers remain independent.
-
-NISAR forest analysis uses the same NASA Earthdata login, GCOV collection fallback,
-region-only streaming, matching HH/HV grids, and isolated worker limits as flood
-analysis. It needs at least two acquisition dates after NISAR's July 2025 launch.
-Only land with valid HH and HV on every selected date contributes to measured areas.
-
-The forest option is an **exploratory vegetation-cover proxy**, not an official NISAR
-forest-disturbance product or a validated land-cover classification. It averages 4 × 4
-pixels in linear power, converts to dB, and estimates vegetation cover using
-**HV gamma0 > the selected threshold**. The adjustable **−13 dB** starting value needs
-regional calibration. The [NISAR Science Users' Handbook](https://nisar.jpl.nasa.gov/documents/26/NISAR_FINAL_9-6-19.pdf)
-discusses HV threshold masks and cites −13 dB for earlier ALOS experiments; that is
-not a calibrated threshold for the gamma0 GCOV data used here. The
-[ASF GCOV guide](https://nisar-docs.asf.alaska.edu/gcov/) describes GCOV normalization
-and its real HH/HV covariance terms. Moisture, season, vegetation type, and other
-surface changes affect this proxy, and it must not be interpreted as confirmed logging.
-
-The cards show baseline vegetation, net vegetation loss (or gain), peak loss between
-acquisitions, and observation count. Loss intervals are irregular and **are not monthly
-rates**. The chart and timeline use actual acquisition dates; the image legend uses
-HH/HV rather than Sentinel-1 VV/VH. Image enhancements remain display-only.
-
-Each run writes `forest_<date>.png`, `metrics.json`, `metrics.csv`, and `forest.tif` in
-`public/data/forest_<region>_<run-id>/`. The CSV includes date, estimated cover area,
-nonnegative interval loss, and signed interval net change (positive means gain).
-The GeoTIFF has one vegetation-mask band per date (1 above threshold, 0 below,
-255 outside common valid land), on the native multilooked projected grid.
-The browser provides CSV/GeoTIFF download links and **Cancel analysis**. Starting
-another NISAR forest run cancels the previous forest run for that browser; it does not
-cancel its flood job. Earth Engine is not required for this source.
-
-`POST /api/forest/nisar/analyze` accepts:
-
-```json
-{"bbox": [-63.35, -9.85, -62.85, -9.35], "start_date": "2026-08-01", "end_date": "2026-11-01", "hv_threshold_db": -13, "region_name": "custom_roi", "client_id": "forest_browser_session"}
-```
-
-It returns HTTP `202` with `mission: "forest"`, `source: "NISAR_L2_GCOV"`,
-`hv_threshold_db`, and a unique `region`. Poll the shared
-`GET /api/analyze/status?region_name=<region>` endpoint. Completed `metrics` contain
-`acquisition_series`, the selected method, common analyzed land area, and download
-URLs. `POST /api/nisar/cancel` accepts `client_id` and optional `region_name`.
-The existing `/api/flood/cancel` endpoint remains supported.
-
-## NISAR Flood Tracking
-
-The **Floods** tab adapts the supplied `nisar_flood_pipeline.ipynb` flood method.
-The forest tab continues to use the Sentinel-1 pipeline; the Amazon notebook is a
-separate forest study.
-
-Install the updated `requirements.txt` in the project environment and restart the server.
-NISAR downloads use NASA Earthdata credentials, separately from Google Earth Engine.
-Configure `EARTHDATA_USERNAME` and `EARTHDATA_PASSWORD`, or `EARTHDATA_TOKEN`, in the
-server environment. Alternatively, create a persistent login from a terminal:
-
-```bash
-.venv/bin/python -c 'import earthaccess; earthaccess.login(strategy="interactive", persist=True)'
-.venv/bin/python server.py
-```
-
-The server uses environment credentials or `.netrc` without interactive prompts. Keep
-credentials outside the repository. See the [earthaccess authentication guide](https://earthaccess.readthedocs.io/en/stable/user/howto/authenticate/).
-
-1. Open **Floods**, search for the area, and click **Draw a region** or press `S`.
-   You can also choose **Flood reference locations** or click a numbered map marker:
-   **Limpopo / Chókwè** (Mozambique), **Jamuna / Sirajganj** (Bangladesh),
-   **Indus / Sukkur** (Pakistan), **Mekong / Phnom Penh** (Cambodia), and
-   **Mississippi / Vicksburg** (USA). Each selects a compact study rectangle and
-   includes a link to NASA's flood history for that area. Your date inputs stay
-   unchanged, and selection does not start downloads. Reference markers appear
-   only in Floods; drawing a custom region clears the reference selection.
-2. Enter **Start date** and **End date**, then click **Analyze floods**. Both dates
-   are included in the search; the end date must follow the start and cannot be in the future.
-   The default period is the last 90 days. Changing dates does not start downloads
-   until you click **Analyze floods** again.
-3. Follow authentication, search, region reading, processing, and export progress. At least two acquisitions
-   from one track/direction/frame/mode are required. The search tries validated,
-   provisional, then beta GCOV releases, without mixing them, using the collection
-   names in the [NISAR data access guide](https://nisar-docs.asf.alaska.edu/earthaccess/).
-4. Play or scrub actual acquisition dates and compare against the first observation.
-   Red means new open water; blue means other detected water; gray is HH radar backscatter.
-   The CSV and GeoTIFF download links appear after processing completes.
-
-Reference locations identify historically flood-prone river areas. The linked
-historical events may predate NISAR and do not guarantee NISAR observations or
-flooding in the period you select. Choose dates covered by NISAR for analysis.
-
-The method averages 4 × 4 pixels in linear power before converting to dB, then
-classifies open water with **HH < −15 dB and HV < −24 dB**. It applies the notebook's
-Natural Earth land mask, removes the first date's water and water present throughout
-the stack, and removes flood patches smaller than 10 connected pixels. It uses only
-land pixels with valid HH and HV on every acquisition. It requires real HH and HV in
-frequency A on matching grids; it never creates proxy polarizations. Radar maps are
-reprojected for correct placement on the Leaflet map; measurement areas and GeoTIFFs
-use the source projected grid.
-
-These thresholds come from the supplied notebook and need regional calibration.
-Results estimate **new open water relative to the first available acquisition**,
-which may already be flooded. They do not detect inundation beneath vegetation and
-have not been independently validated. A single selected frame may cover part of a
-large rectangle; the app reports the common analyzed land area, and unobserved areas
-are transparent. Duration exports count flooded acquisitions, not elapsed days.
-
-Full GCOV files can be several GB each. The app streams only the HDF5 blocks needed
-for the selected region, using a bounded block cache, instead of downloading every
-full scene. Existing complete GCOV files in `.cache/nisar/` are reused. The Natural
-Earth coastline is fetched on first use into `.cache/cartopy/`.
-Caches are excluded from Git. Each run exports PNGs, `metrics.json`, `metrics.csv`,
-`flood.tif`, and `flood_duration.tif` into `public/data/flood_<region>_<run-id>/`.
-Each run uses an isolated worker, so another analysis cannot hold up its network
-access. Starting a new analysis in the same browser cancels its previous run;
-**Cancel analysis** also stops the active worker. Progress includes elapsed time.
-A worker that reports no progress for 120 seconds is stopped with a stage-specific
-error; the overall run limit is 15 minutes. Shorten the date range or draw a smaller
-region if processing reaches time or memory limits.
-
-NISAR [launched on July 30, 2025](https://science.nasa.gov/mission/nisar/mission-overview/),
-so there are no NISAR observations for 2024. A range spanning 2024–2026 searches only
-the portion after launch and uses the actual first available acquisition as its
-baseline. A period ending before launch is rejected immediately.
-If no consistent two-date stack is found, widen the dates or select another region.
-If authentication fails, verify Earthdata access and restart the server with its
-credentials available. The notebook's dependencies are installed by `requirements.txt`;
-no notebook execution is needed to use the app.
-
-The flood API is `POST /api/flood/analyze`:
-
-```json
-{"bbox": [32.5, -25.5, 33.8, -24.0], "start_date": "2025-10-01", "end_date": "2025-11-01", "region_name": "custom_roi"}
-```
-
-It returns HTTP `202` with a run-specific `region`. Poll the shared
-`GET /api/analyze/status?region_name=<region>` endpoint. Running responses include
-`progress.stage`, `progress.message`, and `elapsed_seconds`; completed responses include `acquisition_series`
-with dates, measured water/new-water areas, image URLs and geographic bounds, plus
-`downloads` for the CSV and GeoTIFFs. Failures return an error without simulated measurements.
-The browser supplies a persistent per-session `client_id`; submitting another analysis
-with the same identifier cancels the previous one. `POST /api/flood/cancel` accepts
-`{"client_id": "...", "region_name": "..."}` to cancel that browser's run. Cancelled
-jobs report `status: "cancelled"` and cannot publish late worker results.
-
-## Analysis API and Command Line
-
-`POST /api/analyze` accepts JSON such as:
-
-```json
-{"bbox": [-63.35, -9.85, -62.85, -9.35], "year": 2025, "region_name": "custom_roi"}
-```
-
-Coordinates are `[west, south, east, north]` in degrees. Rectangles must have increasing
-longitude and latitude and cannot cross the antimeridian. The API accepts years from
-2014 through the current year, subject to observations being available for every month.
-It returns HTTP `202` with a generated `region` identifier. Poll
-`GET /api/analyze/status?region_name=<region>` for `running`, `complete`, or `error`;
-completed responses include `metrics_ready: true`, measurements, and image URLs.
-
-You can also run the pipeline directly for another year or output directory:
-
-```bash
-.venv/bin/python pipeline.py --bbox -63.35 -9.85 -62.85 -9.35 --year 2025 --name example --outdir public/data/example
-```
-
----
-
-## 📁 Project Structure
-
-```
-nasa_space_challenge/
-├── index.html                  # Root forwarder
-├── server.py                   # Lightweight local web server
-├── pipeline.py                 # Earth Engine monthly radar and forest-cover analysis
-├── flood_pipeline.py           # NISAR GCOV region streaming, new water detection, exports
-├── nisar_forest_pipeline.py    # NISAR HV vegetation estimates, dated imagery and mask exports
-├── flood_jobs.py               # Isolated worker, cancellation, and timeout supervision
-├── requirements.txt            # Python pipeline dependencies
-├── tests/                      # Python and Node.js regression checks
-├── README.md                   # Project documentation
-├── test.ipynb                  # Google Earth Engine data pipeline script
+```text
+├── server.py                       # Static hosting, API, job registry and publication
+├── pipeline.py                     # Sentinel-1 monthly forest estimates through Earth Engine
+├── nisar_forest_pipeline.py         # NISAR vegetation estimates, images and mask exports
+├── flood_pipeline.py               # NISAR stack access, regional reads and flood analysis
+├── flood_jobs.py                   # Shared isolated NISAR workers and supervision
+├── requirements.txt                # Python dependencies
+├── scripts/build_forest_examples.py # Rebuild all six saved forest examples
+├── tests/                          # Python and Node.js regression checks
+├── test.ipynb                      # Archived Sentinel-1 Amazon/Florida image exporter
+├── index.html                      # Forwarder to the application
 └── public/
-    ├── index.html              # Main web application
-    ├── style.css               # Responsive map workspace styling
-    ├── app.js                  # Map engine, playback, and interactivity
-    ├── image-effects.js        # Local radar display processing
-    ├── assets/                 # Shared frontend assets
-    └── data/
-        ├── manifest.json       # Metadata & geographic bounding boxes
-        ├── amazon/             # Sentinel-1 SAR frames (2024–2026)
-        ├── florida/            # Archived imagery from the former hurricane demonstration
-        └── <region>_<run-id>/  # Generated monthly PNGs and JSON/CSV measurements
+    ├── index.html                  # Application markup
+    ├── app.js                      # Map, source controls, requests, examples and playback
+    ├── image-effects.js            # Browser-only radar display processing
+    ├── forest-examples.js          # Saved forest example catalog
+    ├── style.css                   # Workspace styling
+    ├── assets/                     # Frontend assets
+    └── data/                       # Saved analyses, exports and archived imagery
 ```
 
----
+`server (2).py` is a legacy FastAPI alternative; use `server.py` for the current
+application. The archived `test.ipynb` and Amazon/Florida manifest imagery are not
+required to run the live pipelines. No notebook execution is needed.
 
-## 📡 Data Attribution
-- **Copernicus Sentinel-1 SAR**: European Space Agency (ESA) & European Commission
-- **Data Processing**: Google Earth Engine API
-- **Basemap Imagery**: Esri, CartoDB, OpenStreetMap, NASA EOSDIS GIBS
+## Data attribution
+
+- **Sentinel-1 SAR:** ESA and the European Commission's Copernicus programme,
+  accessed through Google Earth Engine.
+- **NISAR:** the NASA–ISRO mission, with GCOV access through NASA Earthdata and ASF.
+- **Reference land geometry:** Natural Earth, accessed through Cartopy.
+- **Basemaps:** Esri and its imagery providers, CARTO, OpenStreetMap contributors,
+  and NASA EOSDIS GIBS.
+- **Location search:** OpenStreetMap Nominatim.
